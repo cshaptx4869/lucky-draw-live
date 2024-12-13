@@ -1,0 +1,6 @@
+{
+    "require": {
+      "ext-json": "*",
+      "workerman/workerman": "^4.1"
+    }
+}

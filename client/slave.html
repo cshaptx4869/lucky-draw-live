@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="screen-orientation" content="portrait" />
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
+    />
+    <title>年会抽奖小程序</title>
+    <link rel="stylesheet" type="text/css" href="css/reset.css" />
+    <style type="text/css">
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+      }
+
+      .wall {
+        width: 100%;
+        height: 100%;
+        background-image: url(./img/icon-wall.jpg);
+        overflow: hidden;
+        background-color: #121936;
+        background-size: 100% 100%;
+        background-position: center center;
+        background-repeat: no-repeat;
+        -webkit-transition: all 1s;
+        transition: all 1s;
+      }
+
+      #app {
+        position: relative;
+      }
+
+      #result-btn {
+        position: absolute;
+        top: 0;
+        right: 0;
+        margin-top: 20px;
+        text-align: right;
+        margin-right: 30px;
+        text-decoration: none;
+        color: white;
+      }
+
+      #result {
+        position: absolute;
+        height: 60%;
+        width: 100%;
+        overflow-y: auto;
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%);
+        text-align: center;
+        padding: 10px;
+        scrollbar-width: none; /* Firefox */
+        -webkit-scrollbar-width: none; /* Webkit */
+      }
+
+      #result span {
+        display: inline-block;
+        background: #fff;
+        font-size: 25px;
+        line-height: 30px;
+        color: #000;
+        margin: 5px;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.8);
+      }
+
+      #tools {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        text-align: center;
+      }
+
+      #tools .pure-button {
+        display: inline-block;
+        margin: 5px;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .pure-button {
+        display: inline-block;
+        zoom: 1;
+        line-height: normal;
+        white-space: nowrap;
+        vertical-align: middle;
+        text-align: center;
+        cursor: pointer;
+        -webkit-user-drag: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+      }
+
+      .pure-button {
+        font-family: inherit;
+        font-size: 100%;
+        padding: 0.5em 1em;
+        color: #444;
+        color: rgba(0, 0, 0, 0.8);
+        border: 0 rgba(0, 0, 0, 0);
+        background-color: #e6e6e6;
+        text-decoration: none;
+        border-radius: 2px;
+      }
+
+      .pure-button:focus {
+        outline: 0;
+      }
+
+      .pure-button-hover,
+      .pure-button:hover,
+      .pure-button:focus {
+        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00000000', endColorstr='#1a000000', GradientType=0);
+        background-image: -webkit-gradient(
+          linear,
+          0 0,
+          0 100%,
+          from(transparent),
+          color-stop(40%, rgba(0, 0, 0, 0.05)),
+          to(rgba(0, 0, 0, 0.1))
+        );
+        background-image: -webkit-linear-gradient(transparent, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.1));
+        background-image: -moz-linear-gradient(top, rgba(0, 0, 0, 0.05) 0, rgba(0, 0, 0, 0.1));
+        background-image: -o-linear-gradient(transparent, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.1));
+        background-image: linear-gradient(transparent, rgba(0, 0, 0, 0.05) 40%, rgba(0, 0, 0, 0.1));
+      }
+
+      .button-success,
+      .button-error,
+      .button-warning,
+      .button-secondary {
+        color: white;
+        border-radius: 4px;
+        text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+      }
+      .button-success {
+        background: rgb(28, 184, 65);
+      }
+      .button-error {
+        background: rgb(202, 60, 60);
+      }
+      .button-warning {
+        background: rgb(223, 117, 20);
+      }
+      .button-secondary {
+        background: rgb(66, 184, 221);
+      }
+
+      .mask {
+        -webkit-filter: blur(5px);
+        filter: blur(5px);
+      }
+
+      [v-cloak] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app" class="wall" v-cloak>
+      <canvas :id="canvasId" :class="{mask: showResult}" :width="width" :height="height">
+        <ul>
+          <li v-for="item in member" :key="item.phone">
+            <a href="#" :style="{color: winners.includes(getKey(item)) ? 'yellow' : 'white'}"> {{item.name}} </a>
+          </li>
+        </ul>
+      </canvas>
+      <div id="result-btn" class="result-btn" v-show="showResultBtn">
+        <a href="./result.html" target="_blank">获奖名单</a>
+      </div>
+      <div id="result" class="result" v-show="showResult">
+        <span v-for="item in currentWinner" :key="item.phone"> {{item.name}}<br />{{item.phone}} </span>
+      </div>
+      <div id="tools" class="tools">
+        <button
+          v-for="item in prize"
+          :key="item.name"
+          class="pure-button"
+          :class="{ 'button-error': currentPrize?.name === item.name}"
+        >
+          {{item.name}}({{item.quota}})
+        </button>
+      </div>
+    </div>
+    <script type="text/javascript" src="js/vue.min.js"></script>
+    <script type="text/javascript" src="js/tagcanvas.min.js"></script>
+    <script type="text/javascript" src="js/confetti.browser.min.js"></script>
+    <script type="text/javascript">
+      const app = new Vue({
+        el: "#app",
+        data() {
+          return {
+            member: [],
+            prize: [],
+            currentPrize: null,
+            showResult: false,
+            currentWinner: [],
+            winnerList: null,
+            socket: null,
+            socketName: "ws://127.0.0.1:3000",
+            canvasId: "ball",
+            speed: [0.04, -0.06],
+            width: document.body.offsetWidth,
+            height: document.body.offsetHeight,
+            showResultBtn: false,
+          };
+        },
+        computed: {
+          winners() {
+            const list = [];
+            if (this.winnerList) {
+              Object.keys(this.winnerList).forEach((prizeName) => {
+                this.winnerList[prizeName].forEach((memberItem) => {
+                  list.push(this.getKey(memberItem));
+                });
+              });
+            }
+            return list;
+          },
+        },
+        watch: {
+          member(newVal, oldVal) {
+            // this.$nextTick中的回调函数就会在 DOM 更新后执行
+            this.$nextTick(() => {
+              TagCanvas.Start(this.canvasId, undefined, {
+                textColour: null,
+                initial: this.speed,
+                dragControl: true,
+                textHeight: 14,
+              });
+            });
+          },
+          showResult(newVal, oldVal) {
+            if (newVal) {
+              requestAnimationFrame(this.fireworks);
+            }
+          },
+          winnerList(newVal, oldVal) {
+            // 保存名单(跨页面传输用)
+            localStorage.setItem("winnerList", JSON.stringify(newVal));
+            // 是否显示名单
+            this.showResultBtn = Object.keys(newVal).length === this.prize.length;
+            // 重载标签云
+            this.$nextTick(() => {
+              TagCanvas.Reload(this.canvasId);
+            });
+          },
+        },
+        created() {
+          this.createSocket();
+        },
+        mounted() {},
+        methods: {
+          createSocket() {
+            // 创建WebSocket实例，连接到指定的服务器地址
+            const socket = new WebSocket(this.socketName);
+            this.socket = socket;
+            // 当连接成功打开时触发的事件
+            socket.onopen = (event) => {
+              console.log("WebSocket连接已打开");
+              // 这里可以进行一些初始化操作，比如向服务器发送连接成功后的标识等
+              this.send("tag", "slave");
+            };
+            // 当接收到服务器发送的消息时触发的事件
+            socket.onmessage = (event) => {
+              console.log("WebSocket收到消息");
+              // console.log(event.data);
+              const message = JSON.parse(event.data);
+              switch (message.emit) {
+                case "init":
+                  this.init(message.data);
+                  break;
+                case "start":
+                  this.start();
+                  break;
+                case "stop":
+                  this.stop(message.data);
+                  break;
+                case "currentPrize":
+                  this.currentPrize = message.data;
+                  this.showResult = false;
+                  break;
+                case "showResult":
+                  this.showResult = message.data;
+                  break;
+                case "reset":
+                  localStorage.clear();
+                  location.reload();
+                  break;
+              }
+            };
+            // 当连接出现错误时触发的事件
+            socket.onerror = (error) => {
+              console.log("WebSocket连接出错:", error);
+            };
+            // 当连接关闭时触发的事件
+            socket.onclose = (event) => {
+              console.log("WebSocket连接已关闭");
+            };
+          },
+          getKey(item) {
+            return item.name + "-" + item.phone;
+          },
+          send(emit, data = null) {
+            this.socket.send(JSON.stringify({ emit, data }));
+          },
+          fireworks() {
+            function fire(particleRatio, opts) {
+              confetti({
+                ...{
+                  origin: { y: 0.7 },
+                },
+                ...opts,
+                particleCount: Math.floor(200 * particleRatio),
+              });
+            }
+            fire(0.25, {
+              spread: 26,
+              startVelocity: 55,
+            });
+            fire(0.2, {
+              spread: 60,
+            });
+            fire(0.35, {
+              spread: 100,
+              decay: 0.91,
+              scalar: 0.8,
+            });
+            fire(0.1, {
+              spread: 120,
+              startVelocity: 25,
+              decay: 0.92,
+              scalar: 1.2,
+            });
+            fire(0.1, {
+              spread: 120,
+              startVelocity: 45,
+            });
+          },
+          // 初始化
+          init({ member, prize, currentPrize, showResult, currentWinner, winnerList }) {
+            this.member = member;
+            this.prize = prize;
+            this.currentPrize = currentPrize;
+            this.showResult = showResult;
+            this.currentWinner = currentWinner;
+            this.winnerList = winnerList;
+          },
+          // 开始抽奖
+          start() {
+            this.currentWinner = [];
+            this.showResult = false;
+            TagCanvas.SetSpeed(
+              this.canvasId,
+              this.speed.map((item) => item * 100)
+            );
+          },
+          // 停止抽奖
+          stop(currentWinner) {
+            TagCanvas.SetSpeed(this.canvasId, this.speed);
+            this.currentWinner = currentWinner;
+            this.showResult = true;
+            if (this.winnerList === null) {
+              this.winnerList = { [this.currentPrize.name]: currentWinner };
+            } else {
+              if (this.winnerList[this.currentPrize.name]) {
+                this.$delete(this.winnerList, this.currentPrize.name);
+              }
+              this.$set(this.winnerList, this.currentPrize.name, currentWinner);
+            }
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
