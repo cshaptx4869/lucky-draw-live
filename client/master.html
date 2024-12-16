@@ -227,7 +227,7 @@
             width: document.body.offsetWidth,
             height: document.body.offsetHeight,
             running: false,
-            syncPush: false,
+            syncPush: true,
           };
         },
         computed: {
@@ -319,11 +319,19 @@
             // 当连接出现错误时触发的事件
             socket.onerror = (error) => {
               console.log("WebSocket连接出错:", error);
+              alert("WebSocket连接出错");
             };
             // 当连接关闭时触发的事件
             socket.onclose = (event) => {
               console.log("WebSocket连接已关闭");
+              if (confirm("连接已断开，是否重连？")) {
+                location.reload();
+              }
             };
+            // 心跳
+            setInterval(() => {
+              this.send("ping");
+            }, 50000);
           },
           loadScript(url, success, error) {
             const script = document.createElement("script");
