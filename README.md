@@ -31,6 +31,13 @@ php app.php
 
 ![](https://github.com/user-attachments/assets/3335f097-35d2-4b2f-b5c3-48522e87f4c1)
 
+## 纯本地模式
+
+默认是同步推送模式。若要启用纯本地模式，只需修改 client/master.html 文件中的 syncPush 变量为 false。
+
+- 参加者名单和奖项在 client/js/config.js 文件中配置
+- 不需要启动服务端 service，同时，被控端 slave 也无法实现同步
+
 ## 抽奖流程
 
 1. 选择当次要抽奖的奖项
@@ -39,4 +46,5 @@ php app.php
 4. 点击任意奖项按钮，可以回到闲置状态，已中奖的用户标记为黄色，不会二次命中
 
 PS：滚动鼠标滚轮，可以放大或缩小球体
+
 

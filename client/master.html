@@ -227,6 +227,7 @@
             width: document.body.offsetWidth,
             height: document.body.offsetHeight,
             running: false,
+            syncPush: false,
           };
         },
         computed: {
@@ -278,7 +279,19 @@
           },
         },
         created() {
-          this.createSocket();
+          this.syncPush
+            ? this.createSocket()
+            : this.loadScript("js/config.js", () => {
+                this.member = member;
+                this.prize = prize;
+                if (prize.length > 0) {
+                  this.currentPrize = prize[0];
+                }
+                this.winnerList = localStorage.getItem("winnerList");
+                if (this.winnerList !== null) {
+                  this.winnerList = JSON.parse(this.winnerList);
+                }
+              });
         },
         mounted() {},
         methods: {
@@ -312,8 +325,20 @@
               console.log("WebSocket连接已关闭");
             };
           },
+          loadScript(url, success, error) {
+            const script = document.createElement("script");
+            script.src = url;
+            script.onload = () => {
+              typeof success === "function" && success();
+            };
+            script.onerror = (event) => {
+              console.error("无法加载脚本文件：" + event.target.src);
+              typeof success === "function" && error(event);
+            };
+            document.body.appendChild(script);
+          },
           send(emit, data = null) {
-            this.socket.send(JSON.stringify({ emit, data }));
+            this.syncPush && this.socket.send(JSON.stringify({ emit, data }));
           },
           getKey(item) {
             return item.name + "-" + item.phone;
