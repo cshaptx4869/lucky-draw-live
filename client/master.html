@@ -304,6 +304,10 @@
               console.log("WebSocket连接已打开");
               // 这里可以进行一些初始化操作，比如向服务器发送连接成功后的标识等
               this.send("tag", "master");
+              // 心跳
+              setInterval(() => {
+                this.send("ping");
+              }, 50000);
             };
             // 当接收到服务器发送的消息时触发的事件
             socket.onmessage = (event) => {
@@ -328,10 +332,6 @@
                 location.reload();
               }
             };
-            // 心跳
-            setInterval(() => {
-              this.send("ping");
-            }, 50000);
           },
           loadScript(url, success, error) {
             const script = document.createElement("script");
