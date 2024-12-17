@@ -18,6 +18,10 @@
           ws.onopen = function () {
             success++;
             console.log("成功连接个数：" + success);
+            // 心跳
+            setInterval(() => {
+              ws.send(JSON.stringify({ emit: "ping", data: null }));
+            }, 50000);
           };
           ws.onmessage = function (evt) {
             var obj = JSON.parse(evt.data);
