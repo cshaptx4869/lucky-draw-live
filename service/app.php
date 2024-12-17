@@ -1,5 +1,6 @@
 <?php
 
+use Workerman\Timer;
 use Workerman\Worker;
 use Workerman\Connection\TcpConnection;
 
@@ -8,6 +9,7 @@ require_once __DIR__ . '/config.php';
 
 class LuckyDrawApp
 {
+    const HEARTBEAT_TIME = 55;
     private $member = null;
     private $prize = null;
     private $currentPrize = null;
@@ -43,7 +45,21 @@ class LuckyDrawApp
 
     public function onWorkerStart()
     {
-        // 初始化操作
+        // 进程启动后设置一个每10秒运行一次的定时器
+        Timer::add(10, function () {
+            $timeNow = time();
+            foreach ($this->worker->connections as $connection) {
+                // 有可能该connection还没收到过消息，则lastMessageTime设置为当前时间
+                if (!property_exists($connection, "lastMessageTime")) {
+                    $connection->lastMessageTime = $timeNow;
+                    continue;
+                }
+                // 上次通讯时间间隔大于心跳间隔，则认为客户端已经下线，关闭连接
+                if ($timeNow - $connection->lastMessageTime > self::HEARTBEAT_TIME) {
+                    $connection->close();
+                }
+            }
+        });
     }
 
     public function onConnect(TcpConnection $connection)
@@ -61,6 +77,8 @@ class LuckyDrawApp
 
     public function onMessage(TcpConnection $connection, $data)
     {
+        // 给connection临时设置一个lastMessageTime属性，用来记录上次收到消息的时间
+        $connection->lastMessageTime = time();
         var_dump("onMessage", $data);
         $obj = json_decode($data);
         if ((json_last_error() !== JSON_ERROR_NONE) || !(is_object($obj) && property_exists($obj, "emit") && property_exists($obj, "data"))) {
