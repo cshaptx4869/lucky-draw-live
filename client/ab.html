@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket压测</title>
+  </head>
+  <body>
+    <script type="text/javascript">
+      var success = 0;
+      var close = 0;
+      var message = 0;
+      var error = 0;
+      function WebSocketTest(i) {
+        if ("WebSocket" in window) {
+          // 创建一个 websocket
+          var ws = new WebSocket("ws://127.0.0.1:3000");
+          ws.onopen = function () {
+            success++;
+            console.log("成功连接个数：" + success);
+          };
+          ws.onmessage = function (evt) {
+            var obj = JSON.parse(evt.data);
+            if (obj.emit === "winnerList") {
+              message++;
+              console.log("收到中奖名单个数：" + message);
+            }
+          };
+          ws.onclose = function () {
+            close++;
+            console.log("关闭连接个数：" + close);
+          };
+          ws.onerror = function () {
+            error++;
+            console.log("错误连接个数：" + error);
+          };
+        } else {
+          // 浏览器不支持 WebSocket
+          alert("您的浏览器不支持 WebSocket!");
+        }
+      }
+      // 压测（各浏览器对WebSocket的连接数进行了限制，建议多开几个浏览器）
+      for (let i = 0; i < 250; i++) {
+        WebSocketTest(i);
+      }
+    </script>
+  </body>
+</html>
