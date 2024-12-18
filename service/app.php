@@ -16,8 +16,8 @@ class LuckyDrawApp
     private $showResult = false;
     private $currentWinner = [];
     private $winnerList = null;
-    private $masterConnId = -1;
-    private $worker;
+    private $masterConnId = 0; // connection id 从 1 开始
+    private $worker; // worker id 从 0 开始
 
     public function __construct($member, $prize)
     {
@@ -45,6 +45,7 @@ class LuckyDrawApp
 
     public function onWorkerStart()
     {
+        // var_dump("onWorkerStart: " . $this->worker->id);
         // 进程启动后设置一个每10秒运行一次的定时器
         Timer::add(10, function () {
             $timeNow = time();
@@ -64,7 +65,7 @@ class LuckyDrawApp
 
     public function onConnect(TcpConnection $connection)
     {
-        var_dump("onConnect");
+        // var_dump("onConnect: " . $connection->id);
         $connection->send($this->buffer("init", [
             'member' => $this->member,
             'prize' => $this->prize,
@@ -79,7 +80,7 @@ class LuckyDrawApp
     {
         // 给connection临时设置一个lastMessageTime属性，用来记录上次收到消息的时间
         $connection->lastMessageTime = time();
-        var_dump("onMessage", $data);
+        // var_dump("onMessage: " . $connection->id, $data);
         $obj = json_decode($data);
         if ((json_last_error() !== JSON_ERROR_NONE) || !(is_object($obj) && property_exists($obj, "emit") && property_exists($obj, "data"))) {
             $connection->send($this->buffer("error", "数据格式错误"));
@@ -90,7 +91,7 @@ class LuckyDrawApp
                 $tag = $obj->data;
                 $connection->tag = $tag;
                 if ($tag === "master") {
-                    if ($this->masterConnId >= 0 && isset($this->worker->connections[$this->masterConnId])) {
+                    if ($this->masterConnId > 0 && isset($this->worker->connections[$this->masterConnId])) {
                         $this->worker->connections[$this->masterConnId]->close();
                     }
                     $this->masterConnId = $connection->id;
@@ -125,9 +126,9 @@ class LuckyDrawApp
 
     public function onClose(TcpConnection $connection)
     {
-        var_dump("onClose");
+        var_dump("onClose: " . $connection->id);
         if ($connection->id === $this->masterConnId) {
-            $this->masterConnId = -1;
+            $this->masterConnId = 0;
         }
     }
 
