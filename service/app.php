@@ -38,7 +38,7 @@ class LuckyDrawApp
     {
         $error = $this->checkEnv();
         if (!empty($error)) {
-            throw new Error(join($error, ';'));
+            throw new \Error(join($error, ';'));
         }
         Worker::runAll();
     }
@@ -56,7 +56,7 @@ class LuckyDrawApp
                     continue;
                 }
                 // 上次通讯时间间隔大于心跳间隔，则认为客户端已经下线，关闭连接
-                if ($timeNow - $connection->lastMessageTime > self::HEARTBEAT_TIME) {
+                if (($timeNow - $connection->lastMessageTime) > self::HEARTBEAT_TIME) {
                     $connection->close();
                 }
             }
@@ -91,7 +91,7 @@ class LuckyDrawApp
                 $tag = $obj->data;
                 $connection->tag = $tag;
                 if ($tag === "master") {
-                    if ($this->masterConnId > 0 && isset($this->worker->connections[$this->masterConnId])) {
+                    if (isset($this->worker->connections[$this->masterConnId])) {
                         $this->worker->connections[$this->masterConnId]->close();
                     }
                     $this->masterConnId = $connection->id;
