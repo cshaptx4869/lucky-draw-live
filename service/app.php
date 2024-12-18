@@ -16,6 +16,7 @@ class LuckyDrawApp
     private $showResult = false;
     private $currentWinner = [];
     private $winnerList = null;
+    private $running = false;
     private $masterConnId = 0; // connection id 从 1 开始
     private $worker; // worker id 从 0 开始
 
@@ -73,6 +74,7 @@ class LuckyDrawApp
             'showResult' => $this->showResult,
             'winnerList' => $this->winnerList,
             'currentWinner' => $this->currentWinner,
+            'running' => $this->running,
         ]));
     }
 
@@ -109,11 +111,16 @@ class LuckyDrawApp
                 $this->currentWinner = $obj->data;
             } elseif ($obj->emit === "winnerList") {
                 $this->winnerList = $obj->data;
+            } else if ($obj->emit === "start") {
+                $this->running = true;
+            } else if ($obj->emit === "stop") {
+                $this->running = false;
             } elseif ($obj->emit === "reset") {
                 $this->currentPrize = null;
                 $this->showResult = false;
                 $this->currentWinner = [];
                 $this->winnerList = null;
+                $this->running = false;
             }
             // 同步转发更新
             foreach ($this->worker->connections as $conn) {

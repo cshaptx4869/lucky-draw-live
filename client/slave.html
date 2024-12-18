@@ -230,17 +230,6 @@
           },
         },
         watch: {
-          member(newVal, oldVal) {
-            // this.$nextTick中的回调函数就会在 DOM 更新后执行
-            this.$nextTick(() => {
-              TagCanvas.Start(this.canvasId, undefined, {
-                textColour: null,
-                initial: this.speed,
-                dragControl: true,
-                textHeight: 14,
-              });
-            });
-          },
           showResult(newVal, oldVal) {
             if (newVal) {
               requestAnimationFrame(this.fireworks);
@@ -357,13 +346,26 @@
             });
           },
           // 初始化
-          init({ member, prize, currentPrize, showResult, currentWinner, winnerList }) {
+          init({ member, prize, currentPrize, showResult, currentWinner, winnerList, running }) {
             this.member = member;
             this.prize = prize;
             this.currentPrize = currentPrize;
             this.showResult = showResult;
             this.currentWinner = currentWinner;
             this.winnerList = winnerList;
+            // this.$nextTick中的回调函数就会在 DOM 更新后执行
+            this.$nextTick(() => {
+              TagCanvas.Start(this.canvasId, undefined, {
+                textColour: null,
+                initial: this.speed,
+                dragControl: true,
+                textHeight: 14,
+              });
+              // 恢复状态
+              if (running) {
+                this.start();
+              }
+            });
           },
           // 开始抽奖
           start() {
