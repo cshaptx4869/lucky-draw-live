@@ -111,25 +111,21 @@
             };
             // 当接收到服务器发送的消息时触发的事件
             socket.onmessage = (event) => {
-              console.log("WebSocket收到消息");
-              // console.log(event.data);
               const message = JSON.parse(event.data);
+              console.log("WebSocket收到消息", message.emit);
               switch (message.emit) {
                 case "init":
                   this.init(message.data);
                   break;
                 case "start":
-                  this.start();
+                  this.start(message.data);
                   break;
                 case "stop":
                   this.stop(message.data);
                   break;
-                case "currentPrize":
-                  this.currentPrize = message.data;
-                  this.showResult = false;
-                  break;
-                case "showResult":
-                  this.showResult = message.data;
+                case "choosePrize":
+                  this.currentPrize = message.data.currentPrize;
+                  this.showResult = message.data.showResult;
                   break;
                 case "reset":
                   localStorage.clear();
@@ -206,33 +202,24 @@
                 textHeight: 14,
               });
               // 恢复状态
-              if (running) {
-                this.start();
-              }
+              running === true && this.start({ currentWinner, showResult });
             });
           },
           // 开始抽奖
-          start() {
-            this.currentWinner = [];
-            this.showResult = false;
+          start({ currentWinner, showResult }) {
+            this.currentWinner = currentWinner;
+            this.showResult = showResult;
             TagCanvas.SetSpeed(
               this.canvasId,
               this.speed.map((item) => item * 100)
             );
           },
           // 停止抽奖
-          stop(currentWinner) {
-            TagCanvas.SetSpeed(this.canvasId, this.speed);
+          stop({ currentWinner, showResult, winnerList }) {
             this.currentWinner = currentWinner;
-            this.showResult = true;
-            if (this.winnerList === null) {
-              this.winnerList = { [this.currentPrize.name]: currentWinner };
-            } else {
-              if (this.winnerList[this.currentPrize.name]) {
-                this.$delete(this.winnerList, this.currentPrize.name);
-              }
-              this.$set(this.winnerList, this.currentPrize.name, currentWinner);
-            }
+            this.showResult = showResult;
+            this.winnerList = winnerList;
+            TagCanvas.SetSpeed(this.canvasId, this.speed);
           },
         },
       });

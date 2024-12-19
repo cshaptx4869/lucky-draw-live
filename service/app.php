@@ -103,18 +103,18 @@ class LuckyDrawApp
             }
         } else {
             // 记录同步状态
-            if ($obj->emit === "currentPrize") {
-                $this->currentPrize = $obj->data;
-            } elseif ($obj->emit === "showResult") {
-                $this->showResult = $obj->data;
-            } elseif ($obj->emit === "currentWinner") {
-                $this->currentWinner = $obj->data;
-            } elseif ($obj->emit === "winnerList") {
-                $this->winnerList = $obj->data;
+            if ($obj->emit === "choosePrize") {
+                $this->currentPrize = $obj->data->currentPrize;
+                $this->showResult = $obj->data->showResult;
             } else if ($obj->emit === "start") {
-                $this->running = true;
+                $this->running = $obj->data->running;
+                $this->currentWinner = $obj->data->currentWinner;
+                $this->showResult = $obj->data->showResult;
             } else if ($obj->emit === "stop") {
-                $this->running = false;
+                $this->running = $obj->data->running;
+                $this->currentWinner = $obj->data->currentWinner;
+                $this->showResult = $obj->data->showResult;
+                $this->winnerList = $obj->data->winnerList;
             } elseif ($obj->emit === "reset") {
                 $this->currentPrize = null;
                 $this->showResult = false;
@@ -133,7 +133,7 @@ class LuckyDrawApp
 
     public function onClose(TcpConnection $connection)
     {
-        var_dump("onClose: " . $connection->id);
+        // var_dump("onClose: " . $connection->id);
         if ($connection->id === $this->masterConnId) {
             $this->masterConnId = 0;
         }

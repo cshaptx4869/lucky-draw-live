@@ -89,21 +89,13 @@
           },
         },
         watch: {
-          currentPrize(newVal, oldVal) {
-            this.send("currentPrize", newVal);
-          },
           showResult(newVal, oldVal) {
-            this.send("showResult", newVal);
             if (newVal) {
               requestAnimationFrame(this.fireworks);
             }
           },
-          currentWinner(newVal, oldVal) {
-            this.send("currentWinner", newVal);
-          },
           winnerList(newVal, oldVal) {
             // console.log("🚀 ~ winnerList:", newVal, oldVal);
-            this.send("winnerList", newVal);
             // 保存名单(跨页面传输用)
             localStorage.setItem("winnerList", JSON.stringify(newVal));
             // 重载标签云
@@ -146,9 +138,8 @@
             };
             // 当接收到服务器发送的消息时触发的事件
             socket.onmessage = (event) => {
-              console.log("WebSocket收到消息");
-              // console.log(event.data);
               const message = JSON.parse(event.data);
+              console.log("WebSocket收到消息", message.emit);
               switch (message.emit) {
                 case "init":
                   this.init(message.data);
@@ -181,11 +172,13 @@
             document.body.appendChild(script);
           },
           send(emit, data = null) {
+            console.log("🚀 ~ send:", { emit, data });
             this.syncPush && this.socket.send(JSON.stringify({ emit, data }));
           },
           getKey(item) {
             return item.name + "-" + item.phone;
           },
+          // 初始化
           init({ member, prize, currentPrize, showResult, currentWinner, winnerList, running }) {
             this.member = member;
             this.prize = prize;
@@ -193,6 +186,7 @@
             this.showResult = showResult;
             this.currentWinner = currentWinner;
             this.winnerList = winnerList;
+            this.running = running;
             // this.$nextTick中的回调函数就会在 DOM 更新后执行
             this.$nextTick(() => {
               TagCanvas.Start(this.canvasId, undefined, {
@@ -202,12 +196,11 @@
                 textHeight: 14,
               });
               // 恢复状态
-              if (running) {
-                this.start(true);
-              }
+              running === true && this.start(true);
             });
           },
-          start(resume) {
+          // 开始抽奖
+          start(resume = false) {
             if (resume !== true) {
               if (this.prize.length === 0) {
                 alert("奖品列表为空");
@@ -222,19 +215,25 @@
                   return;
                 }
               }
-              this.send("start");
+              this.running = true;
+              this.currentWinner = [];
+              this.showResult = false;
             }
-            this.running = true;
-            this.currentWinner = [];
-            this.showResult = false;
             TagCanvas.SetSpeed(
               this.canvasId,
               this.speed.map((item) => item * 100)
             );
+            if (resume !== true) {
+              this.send("start", {
+                running: this.running,
+                currentWinner: this.currentWinner,
+                showResult: this.showResult,
+              });
+            }
           },
+          // 停止抽奖
           stop() {
             const currentWinner = this.lottery(this.currentPrize.quota);
-            this.send("stop", currentWinner);
             TagCanvas.SetSpeed(this.canvasId, this.speed);
             this.running = false;
             this.currentWinner = currentWinner;
@@ -247,6 +246,12 @@
               }
               this.$set(this.winnerList, this.currentPrize.name, currentWinner);
             }
+            this.send("stop", {
+              running: this.running,
+              currentWinner: this.currentWinner,
+              showResult: this.showResult,
+              winnerList: this.winnerList,
+            });
           },
           lottery(count) {
             return this.member
@@ -302,6 +307,10 @@
           handleChoosePrize(prize) {
             this.currentPrize = prize;
             this.showResult = false;
+            this.send("choosePrize", {
+              currentPrize: this.currentPrize,
+              showResult: this.showResult,
+            });
           },
           handleToggle() {
             this.running ? this.stop() : this.start();
