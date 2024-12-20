@@ -20,6 +20,9 @@
           </li>
         </ul>
       </canvas>
+      <div id="connections" class="connections">
+        <span>在线人数：{{connections}}</span>
+      </div>
       <div id="result-btn" class="result-btn" v-show="showResultBtn">
         <a href="./result.html" target="_blank">获奖名单</a>
       </div>
@@ -53,6 +56,7 @@
             winnerList: null,
             socket: null,
             socketName: "ws://127.0.0.1:3000",
+            connections: 0,
             canvasId: "ball",
             speed: [0.04, -0.06],
             width: document.body.offsetWidth,
@@ -130,6 +134,9 @@
                 case "reset":
                   localStorage.clear();
                   location.reload();
+                  break;
+                case "connections":
+                  this.connections = message.data;
                   break;
               }
             };

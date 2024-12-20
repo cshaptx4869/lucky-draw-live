@@ -98,6 +98,7 @@ class LuckyDrawApp
                     }
                     $this->masterConnId = $connection->id;
                 }
+                $this->broadcastConnections();
             } else if ($obj->emit === "ping") {
                 $connection->send($this->buffer("pong"));
             }
@@ -137,6 +138,7 @@ class LuckyDrawApp
         if ($connection->id === $this->masterConnId) {
             $this->masterConnId = 0;
         }
+        $this->broadcastConnections();
     }
 
     private function checkEnv()
@@ -189,6 +191,17 @@ class LuckyDrawApp
             "emit" => $emit,
             "data" => $data
         ]);
+    }
+
+    private function broadcastConnections()
+    {
+        $connectionCount = count($this->worker->connections);
+        if (isset($this->worker->connections[$this->masterConnId])) {
+            $connectionCount -= 1;
+        }
+        foreach ($this->worker->connections as $connection) {
+            $connection->send($this->buffer("connections", $connectionCount));
+        }
     }
 }
 

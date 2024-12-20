@@ -21,6 +21,10 @@
           </li>
         </ul>
       </canvas>
+      <!-- 在线人数 -->
+      <div id="connections" class="connections" v-if="syncPush">
+        <span>在线人数：{{connections}}</span>
+      </div>
       <!-- 获奖名单 -->
       <div id="result-btn" class="result-btn">
         <a href="./result.html" target="_blank">获奖名单</a>
@@ -68,11 +72,12 @@
             running: false,
             socket: null,
             socketName: "ws://127.0.0.1:3000",
+            syncPush: true,
+            connections: 0,
             canvasId: "ball",
             speed: [0.04, -0.06], // 左右 上下
             width: document.body.offsetWidth,
             height: document.body.offsetHeight,
-            syncPush: true,
           };
         },
         computed: {
@@ -143,6 +148,9 @@
               switch (message.emit) {
                 case "init":
                   this.init(message.data);
+                  break;
+                case "connections":
+                  this.connections = message.data;
                   break;
               }
             };
