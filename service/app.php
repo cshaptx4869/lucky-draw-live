@@ -25,6 +25,9 @@ class LuckyDrawApp
         $this->member = $member;
         $this->prize = $prize;
 
+        Worker::$logFile = __DIR__ . '/tmp/workerman.log';
+        Worker::$stdoutFile = __DIR__ . '/tmp/debug.log';
+
         $this->worker = new Worker('websocket://0.0.0.0:3000');
         $this->worker->count = 1;
         $this->worker->name = 'LuckyDrawLive';
