@@ -33,6 +33,7 @@ class LuckyDrawApp
         $this->worker->onConnect = [$this, 'onConnect'];
         $this->worker->onMessage = [$this, 'onMessage'];
         $this->worker->onClose = [$this, 'onClose'];
+        $this->worker->onError = [$this, 'onError'];
     }
 
     public function run()
@@ -138,7 +139,13 @@ class LuckyDrawApp
         if ($connection->id === $this->masterConnId) {
             $this->masterConnId = 0;
         }
-        $this->broadcastConnections();
+        // onClose 事件触发时，Workerman 还没有完全清理 $worker->connections 中的连接
+        $this->broadcastConnections(true);
+    }
+
+    public function onError(TcpConnection $connection, $code, $msg)
+    {
+        var_dump("onError: " . $connection->id, $code, $msg);
     }
 
     private function checkEnv()
@@ -193,9 +200,12 @@ class LuckyDrawApp
         ]);
     }
 
-    private function broadcastConnections()
+    private function broadcastConnections($delay = false)
     {
         $connectionCount = count($this->worker->connections);
+        if ($delay) {
+            $connectionCount -= 1;
+        }
         foreach ($this->worker->connections as $connection) {
             $connection->send($this->buffer("connections", $connectionCount));
         }
