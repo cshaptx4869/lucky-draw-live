@@ -6,26 +6,32 @@
 
 ## 启动
 
-服务端 service 目录。默认监听 3000 端口。参加者名单和奖项在 config.php 中配置。
+服务端 service 目录。
+
+- 默认监听 3000 端口
+- 参加者名单和奖项在 config 目录中配置（.php和.xlsx文件同时存在时，优先读取xlsx）
 
 ```bash
 cd service
+# 安装依赖
 composer install
 # 启动 websocket 服务
 php app.php
 ```
 
-![](https://github.com/user-attachments/assets/4e965890-1359-4773-82ba-7ae709f1aec7)
+![](https://github.com/user-attachments/assets/90d9df30-dbf8-4758-9532-cec1cf5b23b5)
 
-客户端 client 目录。默认连接本地 3000 端口。
+客户端 client 目录。
+
+- 默认连接本地 3000 端口
 
 - 主控 master 页面（仅能开一个）
 
-![](https://github.com/user-attachments/assets/768f4d8d-bc6a-41ea-898b-2db176fae195)
+![](https://github.com/user-attachments/assets/82c78fd2-46b8-4923-ba93-544b5f5997bc)
 
 - 被控 slave 页面（可开多个）
 
-![](https://github.com/user-attachments/assets/2a87785e-b16e-454d-ba2e-cd130fc81eb9)
+![](https://github.com/user-attachments/assets/280b1565-ddc3-4ad4-b2b5-f92a325c808b)
 
 - 中奖名单
 
