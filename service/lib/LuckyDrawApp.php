@@ -55,7 +55,7 @@ class LuckyDrawApp
     {
         $error = $this->checkEnv();
         if (!empty($error)) {
-            throw new \Error(join($error, ';'));
+            throw new \Error(implode(';', $error));
         }
 
         $this->worker = new Worker('websocket://' . $this->ip . ':' . $this->port);
