@@ -58,280 +58,315 @@
     <script type="text/javascript" src="js/vue.min.js"></script>
     <script type="text/javascript" src="js/tagcanvas.min.js"></script>
     <script type="text/javascript" src="js/confetti.browser.min.js"></script>
+    <script type="text/javascript" src="js/server.js"></script>
     <script type="text/javascript">
-      const app = new Vue({
-        el: "#app",
-        data() {
-          return {
-            member: [],
-            prize: [],
-            currentPrize: null,
-            showResult: false,
-            currentWinner: [],
-            winnerList: null,
-            running: false,
-            socket: null,
-            socketName: "ws://127.0.0.1:3000",
-            syncPush: true,
-            connections: 0,
-            canvasId: "ball",
-            speed: [0.04, -0.06], // 左右 上下
-            width: document.body.offsetWidth,
-            height: document.body.offsetHeight,
-          };
-        },
-        computed: {
-          winners() {
-            const list = [];
-            if (this.winnerList) {
-              Object.keys(this.winnerList).forEach((prizeName) => {
-                this.winnerList[prizeName].forEach((memberItem) => {
-                  list.push(this.getKey(memberItem));
+      const syncPush = true;
+      const secretKey = "LuckyDrawLive";
+      // 检查认证状态并启动应用
+      function initApp() {
+        if (syncPush) {
+          // 验证身份
+          if (sessionStorage.getItem("authenticated") === "true") {
+            runApp(syncPush, server.ip, server.port);
+          } else {
+            authenticateApp(secretKey);
+          }
+        } else {
+          runApp();
+        }
+      }
+      // 初始化应用
+      initApp();
+
+      // 认证应用
+      function authenticateApp(secretKey) {
+        const userProvidedKey = prompt("请输入管理员密码");
+        if (userProvidedKey === secretKey) {
+          sessionStorage.setItem("authenticated", "true");
+          // 验证成功后再次尝试启动应用
+          initApp();
+        } else {
+          alert("密码错误，请重试");
+          // 重新验证
+          authenticateApp(secretKey);
+        }
+      }
+      // 启动应用
+      function runApp(syncPush = false, ip = "127.0.0.1", port = "3000") {
+        const app = new Vue({
+          el: "#app",
+          data() {
+            return {
+              member: [],
+              prize: [],
+              currentPrize: null,
+              showResult: false,
+              currentWinner: [],
+              winnerList: null,
+              running: false,
+              socket: null,
+              socketName: "ws://" + ip + ":" + port,
+              syncPush: syncPush,
+              connections: 0,
+              canvasId: "ball",
+              speed: [0.04, -0.06], // 左右 上下
+              width: document.body.offsetWidth,
+              height: document.body.offsetHeight,
+            };
+          },
+          computed: {
+            winners() {
+              const list = [];
+              if (this.winnerList) {
+                Object.keys(this.winnerList).forEach((prizeName) => {
+                  this.winnerList[prizeName].forEach((memberItem) => {
+                    list.push(this.getKey(memberItem));
+                  });
                 });
+              }
+              return list;
+            },
+          },
+          watch: {
+            showResult(newVal, oldVal) {
+              if (newVal) {
+                requestAnimationFrame(this.fireworks);
+              }
+            },
+            winnerList(newVal, oldVal) {
+              // console.log("🚀 ~ winnerList:", newVal, oldVal);
+              // 保存名单(跨页面传输用)
+              localStorage.setItem("winnerList", JSON.stringify(newVal));
+              // 重载标签云
+              this.$nextTick(() => {
+                TagCanvas.Reload(this.canvasId);
               });
-            }
-            return list;
+            },
           },
-        },
-        watch: {
-          showResult(newVal, oldVal) {
-            if (newVal) {
-              requestAnimationFrame(this.fireworks);
-            }
-          },
-          winnerList(newVal, oldVal) {
-            // console.log("🚀 ~ winnerList:", newVal, oldVal);
-            // 保存名单(跨页面传输用)
-            localStorage.setItem("winnerList", JSON.stringify(newVal));
-            // 重载标签云
-            this.$nextTick(() => {
-              TagCanvas.Reload(this.canvasId);
-            });
-          },
-        },
-        created() {
-          this.syncPush
-            ? this.createSocket()
-            : this.loadScript("js/config.js", () => {
-                const winnerListStr = localStorage.getItem("winnerList");
-                this.init({
-                  member: member.length > 0 ? member : this.member,
-                  prize: prize.length > 0 ? prize : this.prize,
-                  currentPrize: prize.length > 0 ? prize[0] : this.currentPrize,
-                  showResult: this.showResult,
-                  currentWinner: this.currentWinner,
-                  winnerList: winnerListStr !== null ? JSON.parse(winnerListStr) : this.winnerList,
-                  running: this.running,
+          created() {
+            this.syncPush
+              ? this.createSocket()
+              : this.loadScript("js/config.js", () => {
+                  const winnerListStr = localStorage.getItem("winnerList");
+                  this.init({
+                    member: member.length > 0 ? member : this.member,
+                    prize: prize.length > 0 ? prize : this.prize,
+                    currentPrize: prize.length > 0 ? prize[0] : this.currentPrize,
+                    showResult: this.showResult,
+                    currentWinner: this.currentWinner,
+                    winnerList: winnerListStr !== null ? JSON.parse(winnerListStr) : this.winnerList,
+                    running: this.running,
+                  });
                 });
+          },
+          mounted() {},
+          methods: {
+            createSocket() {
+              // 创建WebSocket实例，连接到指定的服务器地址
+              const socket = new WebSocket(this.socketName);
+              this.socket = socket;
+              // 当连接成功打开时触发的事件
+              socket.onopen = (event) => {
+                console.log("WebSocket连接已打开");
+                // 这里可以进行一些初始化操作，比如向服务器发送连接成功后的标识等
+                this.send("tag", "master");
+                // 心跳
+                setInterval(() => {
+                  this.send("ping");
+                }, 50000);
+              };
+              // 当接收到服务器发送的消息时触发的事件
+              socket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                console.log("WebSocket收到消息", message.emit);
+                switch (message.emit) {
+                  case "init":
+                    this.init(message.data);
+                    break;
+                  case "connections":
+                    this.connections = message.data;
+                    break;
+                }
+              };
+              // 当连接出现错误时触发的事件
+              socket.onerror = (error) => {
+                console.log("WebSocket连接出错:", error);
+                alert("WebSocket连接出错");
+              };
+              // 当连接关闭时触发的事件
+              socket.onclose = (event) => {
+                console.log("WebSocket连接已关闭");
+                if (confirm("连接已断开，是否重连？")) {
+                  location.reload();
+                }
+              };
+            },
+            loadScript(url, success, error) {
+              const script = document.createElement("script");
+              script.src = url;
+              script.onload = () => {
+                typeof success === "function" && success();
+              };
+              script.onerror = (event) => {
+                console.error("无法加载脚本文件：" + event.target.src);
+                typeof success === "function" && error(event);
+              };
+              document.body.appendChild(script);
+            },
+            send(emit, data = null) {
+              console.log("🚀 ~ send:", { emit, data });
+              this.syncPush && this.socket.send(JSON.stringify({ emit, data }));
+            },
+            getKey(item) {
+              return item.name + "-" + item.phone;
+            },
+            // 初始化
+            init({ member, prize, currentPrize, showResult, currentWinner, winnerList, running }) {
+              this.member = member;
+              this.prize = prize;
+              this.currentPrize = currentPrize;
+              this.showResult = showResult;
+              this.currentWinner = currentWinner;
+              this.winnerList = winnerList;
+              this.running = running;
+              // this.$nextTick中的回调函数就会在 DOM 更新后执行
+              this.$nextTick(() => {
+                TagCanvas.Start(this.canvasId, undefined, {
+                  textColour: null,
+                  initial: this.speed,
+                  dragControl: true,
+                  textHeight: 14,
+                });
+                // 恢复状态
+                running === true && this.start(true);
               });
-        },
-        mounted() {},
-        methods: {
-          createSocket() {
-            // 创建WebSocket实例，连接到指定的服务器地址
-            const socket = new WebSocket(this.socketName);
-            this.socket = socket;
-            // 当连接成功打开时触发的事件
-            socket.onopen = (event) => {
-              console.log("WebSocket连接已打开");
-              // 这里可以进行一些初始化操作，比如向服务器发送连接成功后的标识等
-              this.send("tag", "master");
-              // 心跳
-              setInterval(() => {
-                this.send("ping");
-              }, 50000);
-            };
-            // 当接收到服务器发送的消息时触发的事件
-            socket.onmessage = (event) => {
-              const message = JSON.parse(event.data);
-              console.log("WebSocket收到消息", message.emit);
-              switch (message.emit) {
-                case "init":
-                  this.init(message.data);
-                  break;
-                case "connections":
-                  this.connections = message.data;
-                  break;
-              }
-            };
-            // 当连接出现错误时触发的事件
-            socket.onerror = (error) => {
-              console.log("WebSocket连接出错:", error);
-              alert("WebSocket连接出错");
-            };
-            // 当连接关闭时触发的事件
-            socket.onclose = (event) => {
-              console.log("WebSocket连接已关闭");
-              if (confirm("连接已断开，是否重连？")) {
-                location.reload();
-              }
-            };
-          },
-          loadScript(url, success, error) {
-            const script = document.createElement("script");
-            script.src = url;
-            script.onload = () => {
-              typeof success === "function" && success();
-            };
-            script.onerror = (event) => {
-              console.error("无法加载脚本文件：" + event.target.src);
-              typeof success === "function" && error(event);
-            };
-            document.body.appendChild(script);
-          },
-          send(emit, data = null) {
-            console.log("🚀 ~ send:", { emit, data });
-            this.syncPush && this.socket.send(JSON.stringify({ emit, data }));
-          },
-          getKey(item) {
-            return item.name + "-" + item.phone;
-          },
-          // 初始化
-          init({ member, prize, currentPrize, showResult, currentWinner, winnerList, running }) {
-            this.member = member;
-            this.prize = prize;
-            this.currentPrize = currentPrize;
-            this.showResult = showResult;
-            this.currentWinner = currentWinner;
-            this.winnerList = winnerList;
-            this.running = running;
-            // this.$nextTick中的回调函数就会在 DOM 更新后执行
-            this.$nextTick(() => {
-              TagCanvas.Start(this.canvasId, undefined, {
-                textColour: null,
-                initial: this.speed,
-                dragControl: true,
-                textHeight: 14,
-              });
-              // 恢复状态
-              running === true && this.start(true);
-            });
-          },
-          // 开始抽奖
-          start(resume = false) {
-            if (resume !== true) {
-              if (this.prize.length === 0) {
-                alert("奖品列表为空");
-                return;
-              }
-              if (this.winners.length >= this.member.length) {
-                alert("可中奖人数不足");
-                return;
-              }
-              if (this.winnerList && this.winnerList[this.currentPrize.name]) {
-                if (!confirm("当前奖项已有中奖名单，是否重抽?")) {
+            },
+            // 开始抽奖
+            start(resume = false) {
+              if (resume !== true) {
+                if (this.prize.length === 0) {
+                  alert("奖品列表为空");
                   return;
                 }
+                if (this.winners.length >= this.member.length) {
+                  alert("可中奖人数不足");
+                  return;
+                }
+                if (this.winnerList && this.winnerList[this.currentPrize.name]) {
+                  if (!confirm("当前奖项已有中奖名单，是否重抽?")) {
+                    return;
+                  }
+                }
+                this.running = true;
+                this.currentWinner = [];
+                this.showResult = false;
               }
-              this.running = true;
-              this.currentWinner = [];
-              this.showResult = false;
-            }
-            TagCanvas.SetSpeed(
-              this.canvasId,
-              this.speed.map((item) => item * 100)
-            );
-            if (resume !== true) {
-              this.send("start", {
+              TagCanvas.SetSpeed(
+                this.canvasId,
+                this.speed.map((item) => item * 100)
+              );
+              if (resume !== true) {
+                this.send("start", {
+                  running: this.running,
+                  currentWinner: this.currentWinner,
+                  showResult: this.showResult,
+                });
+              }
+            },
+            // 停止抽奖
+            stop() {
+              const currentWinner = this.lottery(this.currentPrize.quota);
+              TagCanvas.SetSpeed(this.canvasId, this.speed);
+              this.running = false;
+              this.currentWinner = currentWinner;
+              this.showResult = true;
+              if (this.winnerList === null) {
+                this.winnerList = { [this.currentPrize.name]: currentWinner };
+              } else {
+                if (this.winnerList[this.currentPrize.name]) {
+                  this.$delete(this.winnerList, this.currentPrize.name);
+                }
+                this.$set(this.winnerList, this.currentPrize.name, currentWinner);
+              }
+              this.send("stop", {
                 running: this.running,
                 currentWinner: this.currentWinner,
                 showResult: this.showResult,
+                winnerList: this.winnerList,
               });
-            }
-          },
-          // 停止抽奖
-          stop() {
-            const currentWinner = this.lottery(this.currentPrize.quota);
-            TagCanvas.SetSpeed(this.canvasId, this.speed);
-            this.running = false;
-            this.currentWinner = currentWinner;
-            this.showResult = true;
-            if (this.winnerList === null) {
-              this.winnerList = { [this.currentPrize.name]: currentWinner };
-            } else {
-              if (this.winnerList[this.currentPrize.name]) {
-                this.$delete(this.winnerList, this.currentPrize.name);
+            },
+            lottery(count) {
+              return this.member
+                .filter((item) => {
+                  return !this.winners.includes(this.getKey(item));
+                })
+                .map((item) => {
+                  item.score = Math.random();
+                  return item;
+                })
+                .sort((a, b) => {
+                  return a.score - b.score;
+                })
+                .slice(0, count)
+                .map((item) => {
+                  delete item.score;
+                  return item;
+                });
+            },
+            fireworks() {
+              function fire(particleRatio, opts) {
+                confetti({
+                  ...{
+                    origin: { y: 0.7 },
+                  },
+                  ...opts,
+                  particleCount: Math.floor(200 * particleRatio),
+                });
               }
-              this.$set(this.winnerList, this.currentPrize.name, currentWinner);
-            }
-            this.send("stop", {
-              running: this.running,
-              currentWinner: this.currentWinner,
-              showResult: this.showResult,
-              winnerList: this.winnerList,
-            });
-          },
-          lottery(count) {
-            return this.member
-              .filter((item) => {
-                return !this.winners.includes(this.getKey(item));
-              })
-              .map((item) => {
-                item.score = Math.random();
-                return item;
-              })
-              .sort((a, b) => {
-                return a.score - b.score;
-              })
-              .slice(0, count)
-              .map((item) => {
-                delete item.score;
-                return item;
+              fire(0.25, {
+                spread: 26,
+                startVelocity: 55,
               });
-          },
-          fireworks() {
-            function fire(particleRatio, opts) {
-              confetti({
-                ...{
-                  origin: { y: 0.7 },
-                },
-                ...opts,
-                particleCount: Math.floor(200 * particleRatio),
+              fire(0.2, {
+                spread: 60,
               });
-            }
-            fire(0.25, {
-              spread: 26,
-              startVelocity: 55,
-            });
-            fire(0.2, {
-              spread: 60,
-            });
-            fire(0.35, {
-              spread: 100,
-              decay: 0.91,
-              scalar: 0.8,
-            });
-            fire(0.1, {
-              spread: 120,
-              startVelocity: 25,
-              decay: 0.92,
-              scalar: 1.2,
-            });
-            fire(0.1, {
-              spread: 120,
-              startVelocity: 45,
-            });
+              fire(0.35, {
+                spread: 100,
+                decay: 0.91,
+                scalar: 0.8,
+              });
+              fire(0.1, {
+                spread: 120,
+                startVelocity: 25,
+                decay: 0.92,
+                scalar: 1.2,
+              });
+              fire(0.1, {
+                spread: 120,
+                startVelocity: 45,
+              });
+            },
+            handleChoosePrize(prize) {
+              this.currentPrize = prize;
+              this.showResult = false;
+              this.send("choosePrize", {
+                currentPrize: this.currentPrize,
+                showResult: this.showResult,
+              });
+            },
+            handleToggle() {
+              this.running ? this.stop() : this.start();
+            },
+            handelReset() {
+              if (confirm("确定要重置么？所有之前的抽奖历史将被清除！")) {
+                this.send("reset");
+                localStorage.clear();
+                location.reload();
+              }
+            },
           },
-          handleChoosePrize(prize) {
-            this.currentPrize = prize;
-            this.showResult = false;
-            this.send("choosePrize", {
-              currentPrize: this.currentPrize,
-              showResult: this.showResult,
-            });
-          },
-          handleToggle() {
-            this.running ? this.stop() : this.start();
-          },
-          handelReset() {
-            if (confirm("确定要重置么？所有之前的抽奖历史将被清除！")) {
-              this.send("reset");
-              localStorage.clear();
-              location.reload();
-            }
-          },
-        },
-      });
+        });
+      }
     </script>
   </body>
 </html>

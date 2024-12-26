@@ -9,7 +9,7 @@
 服务端 service 目录。
 
 - 默认监听 3000 端口
-- 参加者名单和奖项在 config 目录中配置（.php和.xlsx文件同时存在时，优先读取xlsx）
+- 参加者名单和奖项在 config 目录中配置（php 和 xlsx 配置文件同时存在时，优先读取 xlsx）
 
 ```bash
 cd service
@@ -23,9 +23,9 @@ php app.php
 
 客户端 client 目录。
 
-- 默认连接本地 3000 端口
+- 默认连接本地 3000 端口。可在 client/js/server.js 文件中修改。
 
-- 主控 master 页面（仅能开一个）
+- 主控 master 页面（仅能开一个。默认密码为 LuckyDrawLive）
 
 ![](https://github.com/user-attachments/assets/82c78fd2-46b8-4923-ba93-544b5f5997bc)
 

@@ -16,7 +16,6 @@ if (file_exists($excelFile)) {
 }
 
 $app = new LuckyDrawApp($member, $prize);
-$app->setLogFile(TMP_PATH . DS . 'workerman.log')
-    ->setStdoutFile(TMP_PATH . DS . 'debug.log')
+$app->setStdoutFile(TMP_PATH . DS . 'debug.log')
     ->setSocketAddress('0.0.0.0', 3000)
     ->run();

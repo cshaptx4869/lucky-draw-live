@@ -6,6 +6,7 @@
     <title>WebSocket压测</title>
   </head>
   <body>
+    <script type="text/javascript" src="js/server.js"></script>
     <script type="text/javascript">
       var success = 0;
       var close = 0;
@@ -14,7 +15,7 @@
       function WebSocketTest(i) {
         if ("WebSocket" in window) {
           // 创建一个 websocket
-          var ws = new WebSocket("ws://127.0.0.1:3000");
+          var ws = new WebSocket("ws://" + server.ip + ":" + server.port);
           ws.onopen = function () {
             success++;
             console.log("成功连接个数：" + success);
