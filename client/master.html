@@ -207,6 +207,10 @@
               // 恢复状态
               running === true && this.start(true);
             });
+            // 清除历史记录
+            if (winnerList === null && localStorage.getItem("winnerList")) {
+              localStorage.removeItem("winnerList");
+            }
           },
           // 开始抽奖
           start(resume = false) {
