@@ -23,9 +23,9 @@ php app.php
 
 客户端 client 目录。
 
-- 默认连接本地 3000 端口。可在 client/js/server.js 文件中修改。
+- 默认连接本地 3000 端口（可在 client/js/server.js 文件中修改）
 
-- 主控 master 页面（仅能开一个。默认密码为 LuckyDrawLive）
+- 主控 master 页面（仅能开一个）
 
 ![](https://github.com/user-attachments/assets/82c78fd2-46b8-4923-ba93-544b5f5997bc)
 
@@ -53,4 +53,43 @@ php app.php
 
 PS：滚动鼠标滚轮，可以放大或缩小球体
 
+## 主控端身份认证
+
+以 Nginx 配置为例：
+
+- 安装 htpasswd 工具
+
+```
+ yum install -y httpd-tools
+ # apt-get install apache2-utils
+```
+
+- 创建密码文件（`-c` 参数表示创建一个新的文件。如果之后要添加更多用户，记得去掉 `-c` 参数以免覆盖现有的文件）
+
+```bash
+ 
+ htpasswd -c /www/server/nginx/conf/htpasswd/lucky-draw-live master
+```
+
+- 修改 Nginx 配置文件
+
+```nginx
+server {
+    # ... 其他配置项 ...
+
+    location = /master.html {
+        auth_basic "请输入管理员密码";
+        auth_basic_user_file /www/server/nginx/conf/htpasswd/lucky-draw-live;
+    }
+
+    # ... 其他配置项 ...
+}
+```
+
+- 测试配置并重启 Nginx
+
+```bash
+nginx -t
+nginx -s reload
+```
 
