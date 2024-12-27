@@ -37,8 +37,11 @@ body {
   margin-top: 20px;
   text-align: right;
   margin-right: 30px;
+}
+
+#result-btn > a {
+  color: #4de7c8;
   text-decoration: none;
-  color: white;
 }
 
 #result {
