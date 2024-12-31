@@ -14,7 +14,7 @@
   <body>
     <div id="app" class="wall" v-cloak>
       <canvas :id="canvasId" :class="{mask: showResult}" :width="width" :height="height">
-        <ul>
+        <ul id="tags">
           <li v-for="item in member" :key="item.phone">
             <a href="#" :style="{color: winners.includes(getKey(item)) ? 'yellow' : 'white'}"> {{item.name}} </a>
           </li>
@@ -203,11 +203,11 @@
             this.winnerList = winnerList;
             // this.$nextTick中的回调函数就会在 DOM 更新后执行
             this.$nextTick(() => {
-              TagCanvas.Start(this.canvasId, undefined, {
+              TagCanvas.Start(this.canvasId, "tags", {
                 textColour: null,
-                initial: this.speed,
-                dragControl: true,
                 textHeight: 14,
+                initial: this.speed,
+                noMouse: true,
               });
               // 恢复状态
               running === true && this.start({ currentWinner, showResult });
