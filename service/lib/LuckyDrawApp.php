@@ -157,6 +157,14 @@ class LuckyDrawApp
                 }
             }
         }
+        // master debug
+        if ($connection->tag === "master") {
+            $this->writeln(json_encode([
+                "handle" => "onMessage",
+                "connection" => $connection->id,
+                "data" => $obj
+            ]));
+        }
     }
 
     public function onClose(TcpConnection $connection)
@@ -167,11 +175,27 @@ class LuckyDrawApp
         }
         // onClose 事件触发时，Workerman 还没有完全清理 $worker->connections 中的连接
         $this->broadcastConnections(true);
+        // master debug
+        if ($connection->tag === "master") {
+            $this->writeln(json_encode([
+                "handle" => "onClose",
+                "connection" => $connection->id
+            ]));
+        }
     }
 
     public function onError(TcpConnection $connection, $code, $msg)
     {
-        var_dump("onError: " . $connection->id, $code, $msg);
+        // var_dump("onError: " . $connection->id, $code, $msg);
+        // master debug
+        if ($connection->tag === "master") {
+            $this->writeln(json_encode([
+                "handle" => "onError",
+                "connection" => $connection->id,
+                "code" => $code,
+                "msg" => $msg
+            ]));
+        }
     }
 
     private function checkEnv()
@@ -235,5 +259,10 @@ class LuckyDrawApp
         foreach ($this->worker->connections as $connection) {
             $connection->send($this->buffer("connections", $connectionCount));
         }
+    }
+
+    private function writeln($msg)
+    {
+        echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . PHP_EOL;
     }
 }
