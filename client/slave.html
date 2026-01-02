@@ -20,14 +20,23 @@
           </li>
         </ul>
       </canvas>
-      <div id="connections" class="connections">
+      <div id="connections">
         <span>在线人数：{{connections}}</span>
       </div>
-      <div id="result-btn" class="result-btn" v-show="showResultBtn">
-        <a href="./result.html" target="_blank">获奖名单</a>
+      <div id="result-btn" v-show="showResultBtn">
+        <span @click="showWinnerList = true">获奖名单</span>
       </div>
-      <div id="result" class="result" v-show="showResult">
+      <div id="result" v-show="showResult">
         <span v-for="item in currentWinner" :key="item.phone"> {{item.name}}<br />{{item.phone}} </span>
+      </div>
+      <div id="list" v-show="showWinnerList" @click="showWinnerList = false">
+        <div class="result-title">{{winnerList ? "获奖名单" : "暂无抽奖记录"}}</div>
+        <template v-if="winnerList">
+          <div class="result-list" v-for="key in Object.keys(winnerList).reverse()" :key="key">
+            <div class="prize-name">{{key}}</div>
+            <div v-for="item in winnerList[key]">{{item.name}} {{item.phone}}</div>
+          </div>
+        </template>
       </div>
       <div id="tools" class="tools">
         <button
@@ -55,6 +64,7 @@
             showResult: false,
             currentWinner: [],
             winnerList: null,
+            showWinnerList: false,
             socket: null,
             socketName: "ws://" + server.ip + ":" + server.port,
             connections: 0,
@@ -122,6 +132,9 @@
                 case "init":
                   this.init(message.data);
                   break;
+                case "connections":
+                  this.connections = message.data;
+                  break;
                 case "start":
                   this.start(message.data);
                   break;
@@ -129,15 +142,10 @@
                   this.stop(message.data);
                   break;
                 case "choosePrize":
-                  this.currentPrize = message.data.currentPrize;
-                  this.showResult = message.data.showResult;
+                  this.choosePrize(message.data);
                   break;
                 case "reset":
-                  localStorage.clear();
-                  location.reload();
-                  break;
-                case "connections":
-                  this.connections = message.data;
+                  this.reset();
                   break;
               }
             };
@@ -210,7 +218,12 @@
                 noMouse: true,
               });
               // 恢复状态
-              running === true && this.start({ currentWinner, showResult });
+              if (running === true) {
+                TagCanvas.SetSpeed(
+                  this.canvasId,
+                  this.speed.map((item) => item * 100)
+                );
+              }
             });
             // 清除历史记录
             if (winnerList === null && localStorage.getItem("winnerList")) {
@@ -232,6 +245,16 @@
             this.showResult = showResult;
             this.winnerList = winnerList;
             TagCanvas.SetSpeed(this.canvasId, this.speed);
+          },
+          // 选择奖项
+          choosePrize({ currentPrize, showResult }) {
+            this.currentPrize = currentPrize;
+            this.showResult = showResult;
+          },
+          // 重置
+          reset() {
+            localStorage.clear();
+            location.reload();
           },
         },
       });

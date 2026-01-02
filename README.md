@@ -39,7 +39,7 @@ php app.php
 
 ## 纯本地模式
 
-默认是同步推送模式。若要启用纯本地模式，只需修改 client/master.html 文件中的 syncPush 变量为 false。
+默认是同步推送模式。若要启用纯本地模式，只需修改 client/js/server.js 文件中的 enabled 配置为 false。
 
 - 参加者名单和奖项在 client/js/config.js 文件中配置
 - 不需要启动服务端 service，同时，被控端 slave 也无法实现同步

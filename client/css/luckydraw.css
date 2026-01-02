@@ -39,11 +39,12 @@ body {
   margin-right: 30px;
 }
 
-#result-btn > a {
+#result-btn > span {
   color: #4de7c8;
-  text-decoration: none;
+  cursor: pointer;
 }
 
+/* 抽奖结果 */
 #result {
   position: absolute;
   height: 60%;
@@ -71,6 +72,48 @@ body {
   box-shadow: 0 5px 10px rgba(0, 0, 0, 0.8);
 }
 
+/* 获奖名单 */
+#list {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  background-color: #121936;
+  background-size: 100% 100%;
+  z-index: 9999;
+}
+
+#list::-webkit-scrollbar {
+  display: none;
+}
+
+#list .result-title {
+  text-align: center;
+  color: #4de7c8;
+  font-size: 45px;
+  font-weight: bold;
+  margin-top: 100px;
+  font-family: "幼圆";
+}
+
+#list .result-list {
+  text-align: center;
+  color: #4de7c8;
+  font-size: 25px;
+  line-height: 50px;
+  margin-top: 50px;
+  margin-bottom: 50px;
+  font-family: "幼圆";
+}
+
+#list .prize-name {
+  font-size: 35px;
+  font-weight: bold;
+  color: #ff0000;
+}
+
+/* 工具栏 */
 #tools {
   position: absolute;
   bottom: 20px;

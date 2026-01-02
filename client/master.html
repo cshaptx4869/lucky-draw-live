@@ -22,19 +22,29 @@
         </ul>
       </canvas>
       <!-- 在线人数 -->
-      <div id="connections" class="connections" v-if="syncPush">
+      <div id="connections" v-if="syncPush">
         <span>在线人数：{{connections}}</span>
       </div>
       <!-- 获奖名单 -->
-      <div id="result-btn" class="result-btn">
-        <a href="./result.html" target="_blank">获奖名单</a>
+      <div id="result-btn">
+        <span @click="showWinnerList = true">获奖名单</span>
       </div>
       <!-- 抽奖结果 -->
       <div id="result" class="result" v-show="showResult">
         <span v-for="item in currentWinner" :key="item.phone"> {{item.name}}<br />{{item.phone}} </span>
       </div>
+      <!-- 获奖名单列表 -->
+      <div id="list" v-show="showWinnerList" @click="showWinnerList = false">
+        <div class="result-title">{{winnerList ? "获奖名单" : "暂无抽奖记录"}}</div>
+        <template v-if="winnerList">
+          <div class="result-list" v-for="key in Object.keys(winnerList).reverse()" :key="key">
+            <div class="prize-name">{{key}}</div>
+            <div v-for="item in winnerList[key]">{{item.name}} {{item.phone}}</div>
+          </div>
+        </template>
+      </div>
       <!-- 操作栏 -->
-      <div id="tools" class="tools">
+      <div id="tools">
         <button
           v-for="item in prize"
           :key="item.name"
@@ -70,10 +80,11 @@
             showResult: false,
             currentWinner: [],
             winnerList: null,
+            showWinnerList: false,
             running: false,
+            syncPush: server.enabled,
             socket: null,
             socketName: "ws://" + server.ip + ":" + server.port,
-            syncPush: true,
             connections: 0,
             canvasId: "ball",
             speed: [0.04, -0.06], // 左右 上下
@@ -184,6 +195,7 @@
             console.log("🚀 ~ send:", { emit, data });
             this.syncPush && this.socket.send(JSON.stringify({ emit, data }));
           },
+          /* 用户唯一标识 */
           getKey(item) {
             return item.name + "-" + item.phone;
           },
@@ -205,49 +217,49 @@
                 dragControl: true,
               });
               // 恢复状态
-              running === true && this.start(true);
+              if (running === true) {
+                TagCanvas.SetSpeed(
+                  this.canvasId,
+                  this.speed.map((item) => item * 100)
+                );
+              }
             });
             // 清除历史记录
             if (winnerList === null && localStorage.getItem("winnerList")) {
               localStorage.removeItem("winnerList");
             }
           },
-          // 开始抽奖
-          start(resume = false) {
-            if (resume !== true) {
-              if (this.prize.length === 0) {
-                alert("奖品列表为空");
-                return;
-              }
-              if (this.winners.length >= this.member.length) {
-                alert("可中奖人数不足");
-                return;
-              }
-              if (this.winnerList && this.winnerList[this.currentPrize.name]) {
-                if (!confirm("当前奖项已有中奖名单，是否重抽?")) {
-                  return;
-                }
-              }
-              this.running = true;
-              this.currentWinner = [];
-              this.showResult = false;
+          /* 开始抽奖 */
+          start() {
+            if (this.prize.length === 0) {
+              alert("奖品列表为空");
+              return;
             }
+            if (this.winners.length >= this.member.length) {
+              alert("可中奖人数不足");
+              return;
+            }
+            if (this.winnerList && this.winnerList[this.currentPrize.name]) {
+              if (!confirm("当前奖项已有中奖名单，是否重抽?")) {
+                return;
+              }
+            }
+            this.running = true;
+            this.currentWinner = [];
+            this.showResult = false;
             TagCanvas.SetSpeed(
               this.canvasId,
               this.speed.map((item) => item * 100)
             );
-            if (resume !== true) {
-              this.send("start", {
-                running: this.running,
-                currentWinner: this.currentWinner,
-                showResult: this.showResult,
-              });
-            }
+            this.send("start", {
+              running: this.running,
+              currentWinner: this.currentWinner,
+              showResult: this.showResult,
+            });
           },
-          // 停止抽奖
+          /* 停止抽奖 */
           stop() {
             const currentWinner = this.lottery(this.currentPrize.quota);
-            TagCanvas.SetSpeed(this.canvasId, this.speed);
             this.running = false;
             this.currentWinner = currentWinner;
             this.showResult = true;
@@ -259,6 +271,7 @@
               }
               this.$set(this.winnerList, this.currentPrize.name, currentWinner);
             }
+            TagCanvas.SetSpeed(this.canvasId, this.speed);
             this.send("stop", {
               running: this.running,
               currentWinner: this.currentWinner,
@@ -266,6 +279,7 @@
               winnerList: this.winnerList,
             });
           },
+          /* 抽奖 */
           lottery(count) {
             return this.member
               .filter((item) => {
@@ -284,6 +298,7 @@
                 return item;
               });
           },
+          /* 显示烟花 */
           fireworks() {
             function fire(particleRatio, opts) {
               confetti({
@@ -317,6 +332,7 @@
               startVelocity: 45,
             });
           },
+          // 选择奖项
           handleChoosePrize(prize) {
             this.currentPrize = prize;
             this.showResult = false;

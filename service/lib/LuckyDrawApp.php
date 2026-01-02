@@ -7,37 +7,58 @@ use Workerman\Connection\TcpConnection;
 class LuckyDrawApp
 {
     const HEARTBEAT_TIME = 55;
-    private $member = null;
-    private $prize = null;
+    private $member = [];
+    private $prize = [];
     private $currentPrize = null;
     private $showResult = false;
     private $currentWinner = [];
-    private $winnerList = null;
+    private $winnerList = null; // 奖项和获奖者列表的映射
     private $running = false;
-    private $masterConnId = 0; // connection id 从 1 开始
-    private $worker; // worker id 从 0 开始
+    private $masterConnId = 0; // 主控端连接Id (connection id 从 1 开始)
+    private $worker; // Worker 容器实例 (worker id 从 0 开始)
     private $ip = "0.0.0.0";
     private $port = 3000;
     private $name = "LuckyDrawLive";
 
+    /**
+     * 构造函数
+     * @param array $member 会员列表
+     * @param array $prize 奖品列表
+     */
     public function __construct($member, $prize)
     {
         $this->member = $member;
         $this->prize = $prize;
     }
 
+    /**
+     * 用来指定 workerman 日志文件位置。仅仅记录 workerman 自身相关启动停止等日志，不包含任何业务日志
+     * @param $filename
+     * @return $this
+     */
     public function setLogFile($filename)
     {
         Worker::$logFile = $filename;
         return $this;
     }
 
+    /**
+     * 以守护进程方式(-d启动)运行，则所有向终端的输出(echo var_dump等)都会被重定向到 stdoutFile 指定的文件中
+     * @param $filename
+     * @return $this
+     */
     public function setStdoutFile($filename)
     {
         Worker::$stdoutFile = $filename;
         return $this;
     }
 
+    /**
+     * 设置监听的 IP 地址和端口号
+     * @param $ip
+     * @param $port
+     * @return $this
+     */
     public function setSocketAddress($ip, $port)
     {
         $this->ip = $ip;
@@ -45,6 +66,11 @@ class LuckyDrawApp
         return $this;
     }
 
+    /**
+     * 设置 Worker 进程的名称
+     * @param $name
+     * @return $this
+     */
     public function setWorkerName($name)
     {
         $this->name = $name;
@@ -71,6 +97,9 @@ class LuckyDrawApp
         Worker::runAll();
     }
 
+    /**
+     * 设置 Worker 子进程启动时的回调函数，每个子进程启动时都会执行
+     */
     public function onWorkerStart()
     {
         // var_dump("onWorkerStart: " . $this->worker->id);
@@ -91,13 +120,18 @@ class LuckyDrawApp
         });
     }
 
+    /**
+     * 当客户端与 Workerman 建立连接时(TCP三次握手完成后)触发的回调函数
+     * 每个连接只会触发一次 onConnect 回调
+     * @param TcpConnection $connection 新的连接对象
+     */
     public function onConnect(TcpConnection $connection)
     {
         // var_dump("onConnect: " . $connection->id);
         $connection->send($this->buffer("init", [
             'member' => $this->member,
             'prize' => $this->prize,
-            'currentPrize' => $this->currentPrize === null && !empty($this->prize) ? $this->prize[0] : $this->currentPrize,
+            'currentPrize' => $this->currentPrize !== null ? $this->currentPrize : $this->prize[0],
             'showResult' => $this->showResult,
             'winnerList' => $this->winnerList,
             'currentWinner' => $this->currentWinner,
@@ -106,6 +140,11 @@ class LuckyDrawApp
         $this->broadcastConnections();
     }
 
+    /**
+     * 当客户端通过连接发来数据时(Workerman收到数据时)触发的回调函数
+     * @param TcpConnection $connection 连接对象
+     * @param string $data 客户端发送的数据
+     */
     public function onMessage(TcpConnection $connection, $data)
     {
         // 给connection临时设置一个lastMessageTime属性，用来记录上次收到消息的时间
@@ -116,44 +155,46 @@ class LuckyDrawApp
             $connection->send($this->buffer("error", "数据格式错误"));
             return;
         }
-        if (in_array($obj->emit, ["tag", "ping"])) {
-            if ($obj->emit === "tag") {
-                $tag = $obj->data;
-                $connection->tag = $tag;
-                if ($tag === "master") {
-                    if (isset($this->worker->connections[$this->masterConnId])) {
-                        $this->worker->connections[$this->masterConnId]->close();
-                    }
-                    $this->masterConnId = $connection->id;
+        if ($obj->emit === "tag") {
+            // 客户端连接标识 (master/slave)
+            $connection->tag = $obj->data;
+            // 只允许一个主控端连接
+            if ($obj->data === "master") {
+                if (isset($this->worker->connections[$this->masterConnId])) {
+                    $this->worker->connections[$this->masterConnId]->close();
                 }
-            } else if ($obj->emit === "ping") {
-                $connection->send($this->buffer("pong"));
+                $this->masterConnId = $connection->id;
             }
+        } else if ($obj->emit === "ping") {
+            // 客户端心跳包
+            $connection->send($this->buffer("pong"));
         } else {
-            // 记录同步状态
-            if ($obj->emit === "choosePrize") {
-                $this->currentPrize = $obj->data->currentPrize;
-                $this->showResult = $obj->data->showResult;
-            } else if ($obj->emit === "start") {
-                $this->running = $obj->data->running;
-                $this->currentWinner = $obj->data->currentWinner;
-                $this->showResult = $obj->data->showResult;
-            } else if ($obj->emit === "stop") {
-                $this->running = $obj->data->running;
-                $this->currentWinner = $obj->data->currentWinner;
-                $this->showResult = $obj->data->showResult;
-                $this->winnerList = $obj->data->winnerList;
-            } elseif ($obj->emit === "reset") {
-                $this->currentPrize = null;
-                $this->showResult = false;
-                $this->currentWinner = [];
-                $this->winnerList = null;
-                $this->running = false;
-            }
-            // 同步转发更新
-            foreach ($this->worker->connections as $conn) {
-                if ($conn !== $connection) {
-                    $conn->send($data);
+            if ($connection->tag === "master") {
+                // 记录同步状态
+                if ($obj->emit === "choosePrize") {
+                    $this->currentPrize = $obj->data->currentPrize;
+                    $this->showResult = $obj->data->showResult;
+                } else if ($obj->emit === "start") {
+                    $this->running = $obj->data->running;
+                    $this->currentWinner = $obj->data->currentWinner;
+                    $this->showResult = $obj->data->showResult;
+                } else if ($obj->emit === "stop") {
+                    $this->running = $obj->data->running;
+                    $this->currentWinner = $obj->data->currentWinner;
+                    $this->showResult = $obj->data->showResult;
+                    $this->winnerList = $obj->data->winnerList;
+                } elseif ($obj->emit === "reset") {
+                    $this->currentPrize = null;
+                    $this->showResult = false;
+                    $this->currentWinner = [];
+                    $this->winnerList = null;
+                    $this->running = false;
+                }
+                // 同步转发更新
+                foreach ($this->worker->connections as $conn) {
+                    if ($conn !== $connection) {
+                        $conn->send($data);
+                    }
                 }
             }
         }
@@ -167,6 +208,11 @@ class LuckyDrawApp
         }
     }
 
+    /**
+     * 当客户端连接与 Workerman 断开时触发的回调函数。不管连接是如何断开的，只要断开就会触发 onClose
+     * 每个连接只会触发一次 onClose
+     * @param TcpConnection $connection 关闭的连接对象
+     */
     public function onClose(TcpConnection $connection)
     {
         // var_dump("onClose: " . $connection->id);
@@ -184,6 +230,12 @@ class LuckyDrawApp
         }
     }
 
+    /**
+     * 当客户端的连接上发生错误时触发
+     * @param TcpConnection $connection 发生错误的连接对象
+     * @param int $code 错误码
+     * @param string $msg 错误信息
+     */
     public function onError(TcpConnection $connection, $code, $msg)
     {
         // var_dump("onError: " . $connection->id, $code, $msg);
@@ -198,6 +250,10 @@ class LuckyDrawApp
         }
     }
 
+    /**
+     * 检查环境是否符合要求
+     * @return array 错误信息数组
+     */
     private function checkEnv()
     {
         $errorMsg = [];
@@ -242,6 +298,12 @@ class LuckyDrawApp
         return $errorMsg;
     }
 
+    /**
+     * 格式化数据为 JSON 字符串
+     * @param $emit 事件名称
+     * @param $data 事件数据
+     * @return string JSON 字符串
+     */
     private function buffer($emit, $data = null)
     {
         return json_encode([
@@ -250,6 +312,10 @@ class LuckyDrawApp
         ]);
     }
 
+    /**
+     * 广播当前连接数
+     * @param bool $delay 是否有延迟
+     */
     private function broadcastConnections($delay = false)
     {
         $connectionCount = count($this->worker->connections);
@@ -261,6 +327,10 @@ class LuckyDrawApp
         }
     }
 
+    /**
+     * 写入日志
+     * @param $msg 日志消息
+     */
     private function writeln($msg)
     {
         echo '[' . date('Y-m-d H:i:s') . '] ' . $msg . PHP_EOL;
