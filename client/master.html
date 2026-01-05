@@ -30,7 +30,7 @@
         <span @click="showWinnerList = true">获奖名单</span>
       </div>
       <!-- 抽奖结果 -->
-      <div id="result" class="result" v-show="showResult">
+      <div id="result" v-show="showResult">
         <span v-for="item in currentWinner" :key="item.phone"> {{item.name}}<br />{{item.phone}} </span>
       </div>
       <!-- 获奖名单列表 -->
@@ -39,7 +39,9 @@
         <template v-if="winnerList">
           <div class="result-list" v-for="key in Object.keys(winnerList).reverse()" :key="key">
             <div class="prize-name">{{key}}</div>
-            <div v-for="item in winnerList[key]">{{item.name}} {{item.phone}}</div>
+            <div v-for="item in winnerList[key]" :key="item.phone">
+              <span>{{item.name}} {{item.phone}}</span>
+            </div>
           </div>
         </template>
       </div>
@@ -62,10 +64,11 @@
         >
           {{running?"停!":"开始"}}
         </button>
-        <button class="pure-button button-warning" @click="handelReset">重置</button>
+        <button class="pure-button button-warning" :disabled="running" @click="handelReset">重置</button>
       </div>
     </div>
     <script type="text/javascript" src="js/vue.min.js"></script>
+    <!-- https://www.goat1000.com/tagcanvas-options.php -->
     <script type="text/javascript" src="js/tagcanvas.min.js"></script>
     <script type="text/javascript" src="js/confetti.browser.min.js"></script>
     <script type="text/javascript" src="js/server.js"></script>
@@ -334,8 +337,11 @@
           },
           // 选择奖项
           handleChoosePrize(prize) {
+            if (this.running) return;
             this.currentPrize = prize;
             this.showResult = false;
+            // 处理拖拽后滚动停止的问题
+            TagCanvas.SetSpeed(this.canvasId, this.speed);
             this.send("choosePrize", {
               currentPrize: this.currentPrize,
               showResult: this.showResult,
@@ -345,6 +351,7 @@
             this.running ? this.stop() : this.start();
           },
           handelReset() {
+            if (this.running) return;
             if (confirm("确定要重置么？所有之前的抽奖历史将被清除！")) {
               this.send("reset");
               localStorage.clear();

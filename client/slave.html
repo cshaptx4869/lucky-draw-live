@@ -13,6 +13,7 @@
   </head>
   <body>
     <div id="app" class="wall" v-cloak>
+      <!-- 标签云 -->
       <canvas :id="canvasId" :class="{mask: showResult}" :width="width" :height="height">
         <ul id="tags">
           <li v-for="item in member" :key="item.phone">
@@ -20,25 +21,32 @@
           </li>
         </ul>
       </canvas>
+      <!-- 在线人数 -->
       <div id="connections">
         <span>在线人数：{{connections}}</span>
       </div>
+      <!-- 获奖名单 -->
       <div id="result-btn" v-show="showResultBtn">
         <span @click="showWinnerList = true">获奖名单</span>
       </div>
+      <!-- 抽奖结果 -->
       <div id="result" v-show="showResult">
         <span v-for="item in currentWinner" :key="item.phone"> {{item.name}}<br />{{item.phone}} </span>
       </div>
+      <!-- 获奖名单列表 -->
       <div id="list" v-show="showWinnerList" @click="showWinnerList = false">
         <div class="result-title">{{winnerList ? "获奖名单" : "暂无抽奖记录"}}</div>
         <template v-if="winnerList">
           <div class="result-list" v-for="key in Object.keys(winnerList).reverse()" :key="key">
             <div class="prize-name">{{key}}</div>
-            <div v-for="item in winnerList[key]">{{item.name}} {{item.phone}}</div>
+            <div v-for="item in winnerList[key]" :key="item.phone">
+              <span>{{item.name}} {{item.phone}}</span>
+            </div>
           </div>
         </template>
       </div>
-      <div id="tools" class="tools">
+      <!-- 操作栏 -->
+      <div id="tools">
         <button
           v-for="item in prize"
           :key="item.name"
@@ -162,11 +170,12 @@
               }
             };
           },
+          send(emit, data = null) {
+            console.log("🚀 ~ send:", { emit, data });
+            this.socket.send(JSON.stringify({ emit, data }));
+          },
           getKey(item) {
             return item.name + "-" + item.phone;
-          },
-          send(emit, data = null) {
-            this.socket.send(JSON.stringify({ emit, data }));
           },
           fireworks() {
             function fire(particleRatio, opts) {
@@ -215,6 +224,7 @@
                 textColour: null,
                 textHeight: 14,
                 initial: this.speed,
+                // 禁用所有鼠标事件
                 noMouse: true,
               });
               // 恢复状态
