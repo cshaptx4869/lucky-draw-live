@@ -132,9 +132,14 @@ body {
   right: 20px;
   left: 20px;
   text-align: right;
-  white-space: nowrap;
-  overflow-x: auto;
-  scroll-behavior: smooth;
+}
+
+@media screen and (max-width: 768px) {
+  #tools {
+    white-space: nowrap;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+  }
 }
 
 .pure-button {
