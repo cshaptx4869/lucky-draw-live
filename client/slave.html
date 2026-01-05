@@ -102,7 +102,9 @@
         watch: {
           showResult(newVal, oldVal) {
             if (newVal) {
-              requestAnimationFrame(this.fireworks);
+              setTimeout(() => {
+                this.fireworks();
+              }, 0);
             }
           },
           winnerList(newVal, oldVal) {
