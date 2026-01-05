@@ -74,7 +74,7 @@ body {
 
 #result span:hover {
   color: #4de7c8;
-  background-color: #062C51;
+  background-color: #062c51;
 }
 
 /* 获奖名单 */
@@ -130,7 +130,11 @@ body {
   position: absolute;
   bottom: 20px;
   right: 20px;
-  text-align: center;
+  left: 20px;
+  text-align: right;
+  white-space: nowrap;
+  overflow-x: auto;
+  scroll-behavior: smooth;
 }
 
 .pure-button {

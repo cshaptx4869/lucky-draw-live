@@ -17,7 +17,9 @@
       <canvas :id="canvasId" :class="{mask: showResult}" :width="width" :height="height">
         <ul id="tags">
           <li v-for="item in member" :key="item.phone">
-            <a href="javascript:void(0)" :style="{color: winners.includes(getKey(item)) ? 'yellow' : 'white'}"> {{item.name}} </a>
+            <a href="javascript:void(0)" :style="{color: winners.includes(getKey(item)) ? 'yellow' : 'white'}">
+              {{item.name}}
+            </a>
           </li>
         </ul>
       </canvas>
@@ -46,7 +48,7 @@
         </template>
       </div>
       <!-- 操作栏 -->
-      <div id="tools">
+      <div id="tools" ref="toolsRef">
         <button
           v-for="item in prize"
           :key="item.name"
@@ -81,6 +83,7 @@
             width: document.body.offsetWidth,
             height: document.body.offsetHeight,
             showResultBtn: false,
+            toolsRef: null,
           };
         },
         computed: {
@@ -260,6 +263,20 @@
           choosePrize({ currentPrize, showResult }) {
             this.currentPrize = currentPrize;
             this.showResult = showResult;
+            /* 滚动到选中的奖项 */
+            const container = this.$refs.toolsRef;
+            if (!container) return;
+            const targetIndex = this.prize.findIndex((item) => item.name === currentPrize.name);
+            if (targetIndex === -1) return;
+            const targetEl = container.children[targetIndex];
+            if (!targetEl) return;
+            // 目标按钮不可见时才滚动
+            if (
+              targetEl.offsetLeft < container.scrollLeft ||
+              targetEl.offsetLeft + targetEl.offsetWidth > container.scrollLeft + container.clientWidth
+            ) {
+              container.scrollLeft = targetEl.offsetLeft;
+            }
           },
           // 重置
           reset() {
