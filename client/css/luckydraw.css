@@ -57,7 +57,7 @@ body {
   padding: 0px 20px;
   scrollbar-width: none; /* Firefox */
   -webkit-scrollbar-width: none; /* Webkit */
-  z-index: 999;
+  z-index: 99;
 }
 
 #result span {
@@ -89,7 +89,7 @@ body {
   background-size: 100% 100%;
   background-position: center center;
   background-repeat: no-repeat;
-  z-index: 9999;
+  z-index: 999;
 }
 
 #list::-webkit-scrollbar {
