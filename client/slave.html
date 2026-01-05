@@ -17,7 +17,7 @@
       <canvas :id="canvasId" :class="{mask: showResult}" :width="width" :height="height">
         <ul id="tags">
           <li v-for="item in member" :key="item.phone">
-            <a href="#" :style="{color: winners.includes(getKey(item)) ? 'yellow' : 'white'}"> {{item.name}} </a>
+            <a href="javascript:void(0)" :style="{color: winners.includes(getKey(item)) ? 'yellow' : 'white'}"> {{item.name}} </a>
           </li>
         </ul>
       </canvas>
