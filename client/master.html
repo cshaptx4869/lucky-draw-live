@@ -247,7 +247,9 @@
               return;
             }
             if (this.winnerList && this.winnerList[this.currentPrize.name]) {
-              if (!confirm("当前奖项已有中奖名单，是否重抽?")) {
+              if (confirm("当前奖项已有中奖名单，是否重抽?")) {
+                this.$delete(this.winnerList, this.currentPrize.name);
+              } else {
                 return;
               }
             }
@@ -273,9 +275,6 @@
             if (this.winnerList === null) {
               this.winnerList = { [this.currentPrize.name]: currentWinner };
             } else {
-              if (this.winnerList[this.currentPrize.name]) {
-                this.$delete(this.winnerList, this.currentPrize.name);
-              }
               this.$set(this.winnerList, this.currentPrize.name, currentWinner);
             }
             TagCanvas.SetSpeed(this.canvasId, this.speed);
