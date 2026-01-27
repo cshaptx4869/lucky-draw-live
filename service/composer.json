@@ -1,8 +1,7 @@
 {
   "require": {
     "ext-json": "*",
-    "workerman/workerman": "^4.1",
-    "phpoffice/phpspreadsheet": "^1.10"
+    "workerman/workerman": "^4.1"
   },
   "autoload": {
     "classmap": [

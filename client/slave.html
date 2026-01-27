@@ -123,6 +123,7 @@
         },
         mounted() {},
         methods: {
+          /* 创建 websockt 连接 */
           createSocket() {
             // 创建WebSocket实例，连接到指定的服务器地址
             const socket = new WebSocket(this.socketName);
@@ -160,6 +161,9 @@
                 case "reset":
                   this.reset();
                   break;
+                case "config":
+                  this.init(message.data);
+                  break;
               }
             };
             // 当连接出现错误时触发的事件
@@ -175,13 +179,94 @@
               }
             };
           },
+          /* 发送消息 */
           send(emit, data = null) {
             console.log("🚀 ~ send:", { emit, data });
             this.socket.send(JSON.stringify({ emit, data }));
           },
+          /* 用户唯一标识 */
           getKey(item) {
             return item.name + "-" + item.phone;
           },
+          // 初始化
+          init({ member, prize, currentPrize, showResult, currentWinner, winnerList, running }) {
+            this.member = member;
+            this.prize = prize;
+            this.currentPrize = currentPrize;
+            this.showResult = showResult;
+            this.currentWinner = currentWinner;
+            this.winnerList = winnerList;
+            if (this.member.length > 0) {
+              // this.$nextTick中的回调函数就会在 DOM 更新后执行
+              this.$nextTick(() => {
+                TagCanvas.Start(this.canvasId, "tags", {
+                  textColour: null,
+                  textHeight: 14,
+                  initial: this.speed,
+                  // 禁用所有鼠标事件
+                  noMouse: true,
+                });
+                // 恢复状态
+                if (running === true) {
+                  TagCanvas.SetSpeed(
+                    this.canvasId,
+                    this.speed.map((item) => item * 100),
+                  );
+                }
+                // 滚动到选中的奖项
+                this.scrollToCurrentPrize();
+              });
+            }
+            // 清除历史记录
+            if (winnerList === null && localStorage.getItem("winnerList")) {
+              localStorage.removeItem("winnerList");
+            }
+          },
+          /* 开始抽奖 */
+          start({ currentWinner, showResult }) {
+            this.currentWinner = currentWinner;
+            this.showResult = showResult;
+            TagCanvas.SetSpeed(
+              this.canvasId,
+              this.speed.map((item) => item * 100),
+            );
+          },
+          /* 停止抽奖 */
+          stop({ currentWinner, showResult, winnerList }) {
+            this.currentWinner = currentWinner;
+            this.showResult = showResult;
+            this.winnerList = winnerList;
+            TagCanvas.SetSpeed(this.canvasId, this.speed);
+          },
+          /* 选择奖项 */
+          choosePrize({ currentPrize, showResult }) {
+            this.currentPrize = currentPrize;
+            this.showResult = showResult;
+            this.scrollToCurrentPrize(currentPrize);
+          },
+          /* 重置 */
+          reset() {
+            localStorage.clear();
+            location.reload();
+          },
+          /* 滚动到选中的奖项 */
+          scrollToCurrentPrize() {
+            if (!this.currentPrize) return;
+            const container = this.$refs.toolsRef;
+            if (!container) return;
+            const targetIndex = this.prize.findIndex((item) => item.name === this.currentPrize.name);
+            if (targetIndex === -1) return;
+            const targetEl = container.children[targetIndex];
+            if (!targetEl) return;
+            // 目标按钮不可见时才滚动
+            if (
+              targetEl.offsetLeft < container.scrollLeft ||
+              targetEl.offsetLeft + targetEl.offsetWidth > container.scrollLeft + container.clientWidth
+            ) {
+              container.scrollLeft = targetEl.offsetLeft;
+            }
+          },
+          // 显示烟花
           fireworks() {
             function fire(particleRatio, opts) {
               confetti({
@@ -214,82 +299,6 @@
               spread: 120,
               startVelocity: 45,
             });
-          },
-          // 初始化
-          init({ member, prize, currentPrize, showResult, currentWinner, winnerList, running }) {
-            this.member = member;
-            this.prize = prize;
-            this.currentPrize = currentPrize;
-            this.showResult = showResult;
-            this.currentWinner = currentWinner;
-            this.winnerList = winnerList;
-            // this.$nextTick中的回调函数就会在 DOM 更新后执行
-            this.$nextTick(() => {
-              TagCanvas.Start(this.canvasId, "tags", {
-                textColour: null,
-                textHeight: 14,
-                initial: this.speed,
-                // 禁用所有鼠标事件
-                noMouse: true,
-              });
-              // 恢复状态
-              if (running === true) {
-                TagCanvas.SetSpeed(
-                  this.canvasId,
-                  this.speed.map((item) => item * 100)
-                );
-              }
-              // 滚动到选中的奖项
-              this.scrollToCurrentPrize();
-            });
-            // 清除历史记录
-            if (winnerList === null && localStorage.getItem("winnerList")) {
-              localStorage.removeItem("winnerList");
-            }
-          },
-          // 开始抽奖
-          start({ currentWinner, showResult }) {
-            this.currentWinner = currentWinner;
-            this.showResult = showResult;
-            TagCanvas.SetSpeed(
-              this.canvasId,
-              this.speed.map((item) => item * 100)
-            );
-          },
-          // 停止抽奖
-          stop({ currentWinner, showResult, winnerList }) {
-            this.currentWinner = currentWinner;
-            this.showResult = showResult;
-            this.winnerList = winnerList;
-            TagCanvas.SetSpeed(this.canvasId, this.speed);
-          },
-          // 选择奖项
-          choosePrize({ currentPrize, showResult }) {
-            this.currentPrize = currentPrize;
-            this.showResult = showResult;
-            this.scrollToCurrentPrize(currentPrize);
-          },
-          // 重置
-          reset() {
-            localStorage.clear();
-            location.reload();
-          },
-          /* 滚动到选中的奖项 */
-          scrollToCurrentPrize() {
-            if (!this.currentPrize) return;
-            const container = this.$refs.toolsRef;
-            if (!container) return;
-            const targetIndex = this.prize.findIndex((item) => item.name === this.currentPrize.name);
-            if (targetIndex === -1) return;
-            const targetEl = container.children[targetIndex];
-            if (!targetEl) return;
-            // 目标按钮不可见时才滚动
-            if (
-              targetEl.offsetLeft < container.scrollLeft ||
-              targetEl.offsetLeft + targetEl.offsetWidth > container.scrollLeft + container.clientWidth
-            ) {
-              container.scrollLeft = targetEl.offsetLeft;
-            }
           },
         },
       });

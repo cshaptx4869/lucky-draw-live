@@ -11,7 +11,7 @@ class LuckyDrawApp
     private $prize = [];
     private $currentPrize = null;
     private $showResult = false;
-    private $currentWinner = [];
+    private $currentWinner = []; // 当前中奖用户
     private $winnerList = null; // 奖项和获奖者列表的映射
     private $running = false;
     private $masterConnId = 0; // 主控端连接Id (connection id 从 1 开始)
@@ -19,17 +19,6 @@ class LuckyDrawApp
     private $ip = "0.0.0.0";
     private $port = 3000;
     private $name = "LuckyDrawLive";
-
-    /**
-     * 构造函数
-     * @param array $member 会员列表
-     * @param array $prize 奖品列表
-     */
-    public function __construct($member, $prize)
-    {
-        $this->member = $member;
-        $this->prize = $prize;
-    }
 
     /**
      * 用来指定 workerman 日志文件位置。仅仅记录 workerman 自身相关启动停止等日志，不包含任何业务日志
@@ -131,10 +120,10 @@ class LuckyDrawApp
         $connection->send($this->buffer("init", [
             'member' => $this->member,
             'prize' => $this->prize,
-            'currentPrize' => $this->currentPrize !== null ? $this->currentPrize : $this->prize[0],
+            'currentPrize' => $this->currentPrize,
             'showResult' => $this->showResult,
-            'winnerList' => $this->winnerList,
             'currentWinner' => $this->currentWinner,
+            'winnerList' => $this->winnerList,
             'running' => $this->running,
         ]));
         $this->broadcastConnections();
@@ -169,26 +158,40 @@ class LuckyDrawApp
             // 客户端心跳包
             $connection->send($this->buffer("pong"));
         } else {
+            // 主控端
             if ($connection->tag === "master") {
                 // 记录同步状态
                 if ($obj->emit === "choosePrize") {
+                    // 选择奖项
                     $this->currentPrize = $obj->data->currentPrize;
                     $this->showResult = $obj->data->showResult;
                 } else if ($obj->emit === "start") {
+                    // 开始抽奖
                     $this->running = $obj->data->running;
                     $this->currentWinner = $obj->data->currentWinner;
                     $this->showResult = $obj->data->showResult;
                 } else if ($obj->emit === "stop") {
+                    // 停止抽奖
                     $this->running = $obj->data->running;
                     $this->currentWinner = $obj->data->currentWinner;
                     $this->showResult = $obj->data->showResult;
                     $this->winnerList = $obj->data->winnerList;
                 } elseif ($obj->emit === "reset") {
-                    $this->currentPrize = null;
+                    // 重置
+                    $this->currentPrize = count($this->prize) > 0 ? $this->prize[0] : null;
                     $this->showResult = false;
                     $this->currentWinner = [];
                     $this->winnerList = null;
                     $this->running = false;
+                } elseif ($obj->emit === "config") {
+                    // 导入配置
+                    $this->member = $obj->data->member;
+                    $this->prize = $obj->data->prize;
+                    $this->currentPrize = $obj->data->currentPrize;
+                    $this->showResult = $obj->data->showResult;
+                    $this->currentWinner = $obj->data->currentWinner;
+                    $this->winnerList = $obj->data->winnerList;
+                    $this->running = $obj->data->running;
                 }
                 // 同步转发更新
                 foreach ($this->worker->connections as $conn) {
@@ -300,8 +303,8 @@ class LuckyDrawApp
 
     /**
      * 格式化数据为 JSON 字符串
-     * @param $emit 事件名称
-     * @param $data 事件数据
+     * @param $emit string 事件名称
+     * @param $data mixed 事件数据
      * @return string JSON 字符串
      */
     private function buffer($emit, $data = null)
@@ -329,7 +332,7 @@ class LuckyDrawApp
 
     /**
      * 写入日志
-     * @param $msg 日志消息
+     * @param $msg string 日志消息
      */
     private function writeln($msg)
     {
