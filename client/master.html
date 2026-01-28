@@ -3,10 +3,7 @@
   <head>
     <meta name="screen-orientation" content="portrait" />
     <meta http-equiv="content-type" content="text/html; charset=utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0" />
     <title>年会抽奖小程序</title>
     <link rel="stylesheet" type="text/css" href="css/reset.css" />
     <link rel="stylesheet" type="text/css" href="css/luckydraw.css" />
@@ -59,10 +56,10 @@
         >
           {{item.name}}({{item.quota}})
         </button>
-        <button class="pure-button" :disabled="running">
-          <a href="tpl/config.xlsx" download="抽奖配置" style="text-decoration: none; color: rgba(0, 0, 0, 0.8)">下载模板</a>
+        <button class="pure-button button-info" :disabled="running">
+          <a href="tpl/config.xlsx" download="抽奖配置">下载模板</a>
         </button>
-        <button class="pure-button" :disabled="running" @click="handleConfig">导入配置</button>
+        <button class="pure-button button-info" :disabled="running" @click="handleConfig">导入配置</button>
         <button
           class="pure-button"
           :class="{'button-secondary': !running, 'button-success': running}"
