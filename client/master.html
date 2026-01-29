@@ -179,7 +179,7 @@
           },
           /* 发送消息 */
           send(emit, data = null) {
-            if (this.syncPush) {
+            if (this.syncPush && this.socket.readyState === WebSocket.OPEN) {
               console.log("🚀 ~ send:", { emit, data });
               this.socket.send(JSON.stringify({ emit, data }));
             }
@@ -381,7 +381,6 @@
                 // 按新配置初始化
                 this.init(data);
                 this.send("config", data);
-                console.log(`共导入: 人员${member.length}; 奖项: ${prize.length}`);
               });
             };
 

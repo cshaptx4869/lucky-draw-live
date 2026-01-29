@@ -178,8 +178,10 @@
           },
           /* 发送消息 */
           send(emit, data = null) {
-            console.log("🚀 ~ send:", { emit, data });
-            this.socket.send(JSON.stringify({ emit, data }));
+            if (this.socket.readyState === WebSocket.OPEN) {
+              console.log("🚀 ~ send:", { emit, data });
+              this.socket.send(JSON.stringify({ emit, data }));
+            }
           },
           /* 用户唯一标识 */
           getKey(item) {
