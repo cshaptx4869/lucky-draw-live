@@ -21,8 +21,10 @@
         </ul>
       </canvas>
       <!-- 在线人数 -->
-      <div id="connections" v-if="syncPush">
-        <span>在线人数：{{connections}}/{{member.length}}</span>
+      <div id="connections">
+        <div v-if="syncPush">在线人数：{{connections}}</div>
+        <div>参与人数：{{member.length}}</div>
+        <div>中奖人数：{{winners.length}}</div>
       </div>
       <!-- 获奖名单 -->
       <div id="result-btn">
