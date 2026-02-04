@@ -62,6 +62,7 @@
           <a href="tpl/config.xlsx" download="抽奖配置">下载模板</a>
         </button>
         <button class="pure-button button-info" :disabled="running" @click="handleConfig">导入配置</button>
+        <button class="pure-button button-info" :disabled="running" @click="handleExport">导出获奖名单</button>
         <button
           class="pure-button"
           :class="{'button-secondary': !running, 'button-success': running}"
@@ -431,6 +432,38 @@
             }
 
             return { member, prize };
+          },
+          /* 导出获奖名单 */
+          async handleExport() {
+            if (!this.winnerList) {
+              alert("暂无抽奖记录");
+              return;
+            }
+            const workbook = new ExcelJS.Workbook();
+            Object.keys(this.winnerList).forEach((prizeName) => {
+              const worksheet = workbook.addWorksheet(prizeName);
+              worksheet.columns = [
+                { header: "姓名", key: "name", width: 15 },
+                { header: "手机号/工号", key: "phone", width: 15 },
+              ];
+              this.winnerList[prizeName].forEach((item) => {
+                worksheet.addRow({
+                  name: item.name,
+                  phone: item.phone,
+                });
+              });
+            });
+            // 导出文件
+            const buffer = await workbook.xlsx.writeBuffer();
+            const blob = new Blob([buffer], {
+              type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "获奖名单.xlsx";
+            a.click();
+            URL.revokeObjectURL(url);
           },
         },
       });
